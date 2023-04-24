@@ -1,4 +1,5 @@
 import mesa
+import numpy as np
 import operator
 
 ### SOIL
@@ -72,6 +73,22 @@ def get_average_pos(lst):
     # returns a list with one tuple, which was needed for after the reset, should maybe be changed but works
     return [(round(x/counter), round(y/counter))]
 
+##### SET INITIAL MASS OF THE BACTERIA
+
+def set_initial_mass(mean_weight, variation_coefficient, num_samples=1):
+
+    values = np.random.normal(mean_weight, variation_coefficient*mean_weight, num_samples)
+
+    negative_indices = np.where(values <= 0)[0]
+
+    while len(negative_indices) > 0:
+
+        new_values = np.random.normal(mean_weight, variation_coefficient*mean_weight, len(negative_indices))
+        values[negative_indices] = new_values
+        negative_indices = np.where(values < 0)[0]
+
+    return values
+
 ### PREDATOR
 
 class Type_a_1(mesa.Agent):
@@ -105,6 +122,9 @@ class Type_a_1(mesa.Agent):
         ################################
         ################################
         
+        self.mass = set_initial_mass(mean_weight = 0.28, variation_coefficient = 0.1) # mass is 0.28 pg, which is weight from average bacteria; 
+        # variation_coefficient is the variance of the distribution for the mass to be drawn from
+
         self.pos = pos
         self.age = 0
         self.has_eaten = False
@@ -277,6 +297,9 @@ class Type_a_2(mesa.Agent):
         ################################
         ################################
         ################################
+
+        self.mass = set_initial_mass(mean_weight = 0.28, variation_coefficient = 0.1) # mass is 0.28 pg, which is weight from average bacteria; 
+        # variation_coefficient is the variance of the distribution for the mass to be drawn from
 
         self.pos = pos
         self.age = 0
@@ -466,7 +489,7 @@ class Microbiome(mesa.Model):
             # Add the agent to a random grid cell
             self.grid.place_agent(a, (x, y))
 
-        # Create Type_a_"
+        # Create Type_a_2"
         for i in range(num_type_a_2):
             x = self.random.randrange(self.grid.width)
             y = self.random.randrange(self.grid.height)
