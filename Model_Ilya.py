@@ -27,11 +27,11 @@ class Soil(mesa.Agent):
         # not that important due to the refuel sources
         self.nutrients = {
             # Type_a food
-            "iron": 5,
+            "iron": 500,
             # Type_b food
-            "chicken":2,
+            "chicken":500,
             # Type_c food
-            "organic":7
+            "organic":500
 
         } 
 
@@ -73,17 +73,19 @@ def get_average_pos(lst):
     # returns a list with one tuple, which was needed for after the reset, should maybe be changed but works
     return [(round(x/counter), round(y/counter))]
 
-##### SET INITIAL MASS OF THE BACTERIA
+##### INTRODUCES VARIABILITY INTO BACTERIAL POPULATION
 
-def set_initial_mass(mean_weight, variation_coefficient, num_samples=1):
+def avoid_identical_clones(mean_value, variation_coefficient = 0.1, num_samples = 1):
 
-    values = np.random.normal(mean_weight, variation_coefficient*mean_weight, num_samples)
+    values = np.random.normal(mean_value, variation_coefficient*mean_value, num_samples)
 
-    negative_indices = np.where(values <= 0)[0]
+    negative_indices = np.where(values <= 0)[0] # avoid negative values from the distribution by selecting them by new positive values
+    # ALTERNATIVE IDEA: the while loop can take away lots of computation -> instead of continuously drawing from ditribution till no more negative values are there
+    # invert the negative values
 
     while len(negative_indices) > 0:
 
-        new_values = np.random.normal(mean_weight, variation_coefficient*mean_weight, len(negative_indices))
+        new_values = np.random.normal(mean_value, variation_coefficient*mean_value, len(negative_indices))
         values[negative_indices] = new_values
         negative_indices = np.where(values < 0)[0]
 
@@ -121,9 +123,6 @@ class Type_a_1(mesa.Agent):
         ################################
         ################################
         ################################
-        
-        self.mass = set_initial_mass(mean_weight = 0.28, variation_coefficient = 0.1) # mass is 0.28 pg, which is weight from average bacteria; 
-        # variation_coefficient is the variance of the distribution for the mass to be drawn from
 
         self.pos = pos
         self.age = 0
@@ -271,8 +270,16 @@ class Type_a_1(mesa.Agent):
 
 class Type_a_2(mesa.Agent):
 
-    def __init__(self, unique_id, model, pos):
+    def __init__(self, unique_id, model, pos, mass):
         super().__init__(unique_id, model)
+
+        ##### Ilya Additions:
+        self.nutrient_uptake_ratio = avoid_identical_clones(0.25) # Reference paper
+        self.maintenance = 0.1 # Reference paper. Units of energy that a unit of mass requieres per each time step
+        self.energy_yield = 0.15 # Reference paper. Amount of energy that a unit of nutrient provides
+        self.avaliability = 0.15 # Reference paper. Local avaliability of nutrients in a spatial cell for each bacterium
+        self.energy_netto = 0 # Netto energy produced by bacteria during eating. If positive -> bacterium acquires mass, if negative -> shrinks
+        self.mass = avoid_identical_clones(mass) 
 
         ################################
         ### CUSTOMIZABLE VARIABLES
@@ -294,12 +301,10 @@ class Type_a_2(mesa.Agent):
         # nutrition and antibiotics need to be in the respective dict in the Soil object
         self.nutrition_list = ["iron"]
         self.antibiotics_list = ["Type_a_2"] # is created dynamically by type_a_1
+        
         ################################
         ################################
         ################################
-
-        self.mass = set_initial_mass(mean_weight = 0.28, variation_coefficient = 0.1) # mass is 0.28 pg, which is weight from average bacteria; 
-        # variation_coefficient is the variance of the distribution for the mass to be drawn from
 
         self.pos = pos
         self.age = 0
@@ -325,14 +330,35 @@ class Type_a_2(mesa.Agent):
     def eat(self):
         # get soil
         soil = self.model.grid.get_cell_list_contents([self.pos])[0]
+        max_individual_uptake = self.mass * self.nutrient_uptake_ratio
 
         # if there are nutrients, first nutrient on nutrition_list gets consumed
         for nutrient in self.nutrition_list:
             # look if consumable nutrients in soil
             if nutrient in soil.nutrients and soil.nutrients[nutrient] > 0:
+               
+                max_possible_consumption = self.avaliability * soil.nutrients[nutrient] # the biggest amount each bacterium can consume
+
+                if max_possible_consumption >= max_individual_uptake:
+                    actual_consumption = max_individual_uptake # make sure that bacteria does not consume more nutrients than its individual consumption upper bounf
+                else: 
+                    actual_consumption = max_possible_consumption
+
                 # subract nutrient and set has_eaten
-                soil.nutrients[nutrient] -= 1
+                soil.nutrients[nutrient] -= actual_consumption
                 self.has_eaten = True
+                
+                produced_energy = self.energy_yield * actual_consumption # convert the consumed nutrients into energy
+                survival_energy = self.maintenance * self.mass # the energy that bacteria needs to survive
+                self.energy_netto = produced_energy - survival_energy
+                
+
+                if self.energy_netto >= 0:
+                    self.mass += self.energy_netto / 2 # Reference paper. If there is some avalaible energy, bacterium will convert half of it into mass
+                else: 
+                    self.mass = 0.9 * self.mass # Reference paper. If the netto energy balance is negative -> bacteria does not cover its maintenance -> shrinks 10%
+
+
                 break
                 
 
@@ -376,7 +402,7 @@ class Type_a_2(mesa.Agent):
             if new_position != None:
 
                 # creating and placing new bacteria
-                new_bacteria = Type_a_2(self.model.next_id(), self.model, new_position)
+                new_bacteria = Type_a_2(self.model.next_id(), self.model, new_position, self.mass / 2)
                 self.model.grid.place_agent(new_bacteria, new_position)
                 self.model.schedule.add(new_bacteria)
 
@@ -415,7 +441,8 @@ class Microbiome(mesa.Model):
     """A model with some number of agents."""
     # EVERYTHING WITH FIVE HASHTAGS IS RELATED TO INITIAL MESA SCAFFOLD AND COULD BE USEFULL IN THE FUTURE
 
-    def __init__(self, num_type_a_1, num_type_a_2, is_torus, grid_height, grid_width):
+    def __init__(self, num_type_a_1, num_type_a_2 ,is_torus, grid_height, grid_width, avrg_mass_num_type_a_2 = 280):
+        # mass is 280 femtogram, which is weight from average bacteria; 
 
         ################################
         ### CUSTOMIZABLE VARIABLES
@@ -493,7 +520,7 @@ class Microbiome(mesa.Model):
         for i in range(num_type_a_2):
             x = self.random.randrange(self.grid.width)
             y = self.random.randrange(self.grid.height)
-            a = Type_a_2(self.next_id(), self, (x, y))
+            a = Type_a_2(self.next_id(), self, (x, y), avrg_mass_num_type_a_2)
             self.schedule.add(a)
             # Add the agent to a random grid cell
             self.grid.place_agent(a, (x, y))
