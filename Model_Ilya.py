@@ -27,11 +27,11 @@ class Soil(mesa.Agent):
         # not that important due to the refuel sources
         self.nutrients = {
             # Type_a food
-            "iron": 500,
+            "iron": 5000,
             # Type_b food
-            "chicken":500,
+            "chicken":5000,
             # Type_c food
-            "organic":500
+            "organic":5000
 
         } 
 
