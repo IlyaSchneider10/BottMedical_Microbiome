@@ -91,8 +91,24 @@ average_bacteria_mass = 280 # mass is 280 femtogram, which is weight from averag
 
 class Type_a_1(mesa.Agent):
 
-    def __init__(self, unique_id, model, pos):
+    def __init__(self, unique_id, model, pos, mass):
         super().__init__(unique_id, model)
+
+        ##### Ilya Additions:
+        self.mass = avoid_identical_clones(mass)
+        self.split_mass = avoid_identical_clones(average_bacteria_mass * 0.3) #Reference paper + ChatGPT
+        self.min_mass = average_bacteria_mass * 0.3 / 2 #Reference paper. I assume that the bacteria dies if its mass is bellow the minimal mass    
+
+        self.avaliability = 0.15 # Reference paper. Local avaliability of nutrients in a spatial cell for each bacterium
+        self.nutrient_uptake_ratio = avoid_identical_clones(0.25) # Reference paper
+        self.max_individual_uptake = self.mass * self.nutrient_uptake_ratio
+        self.max_possible_consumption = 0
+        self.energy_yield = 0.5 # Reference paper has 0.15, does not work in our case because then the produced_energy < survival_energy
+        self.maintenance = 0.1 # Reference paper. Units of energy that a unit of mass requieres per each time step
+       
+        self.produced_energy = 0
+        self.survival_energy = 0
+        self.energy_netto = 0 # Netto energy produced by bacteria during eating. If positive -> bacterium acquires mass, if negative -> shrinks
 
         ################################
         ### CUSTOMIZABLE VARIABLES
@@ -186,58 +202,84 @@ class Type_a_1(mesa.Agent):
         for nutrient in self.nutrition_list:
             # look if consumable nutrients in soil
             if nutrient in soil.nutrients and soil.nutrients[nutrient] > 0:
+
+                self.max_possible_consumption = self.avaliability * soil.nutrients[nutrient] # the biggest amount each bacterium can consume
+
+                if self.max_possible_consumption >= self.max_individual_uptake:
+                    actual_consumption = self.max_individual_uptake # make sure that bacteria does not consume more nutrients than its individual consumption upper bounf
+                else: 
+                    actual_consumption = self.max_possible_consumption
+
                 # subract nutrient and set has_eaten
-                soil.nutrients[nutrient] -= 1
+                soil.nutrients[nutrient] -= actual_consumption
+
+                
+                self.produced_energy = self.energy_yield * actual_consumption # convert the consumed nutrients into energy
+                self.survival_energy = self.maintenance * self.mass # the energy that bacteria needs to survive
+                self.energy_netto = self.produced_energy  - self.survival_energy
+                
+
+                if self.energy_netto >= 0:
+                    self.mass += self.energy_netto / 2 # Reference paper. If there is some avalaible energy, bacterium will convert half of it into mass
+                else: 
+                    self.mass = 0.9 * self.mass # Reference paper. If the netto energy balance is negative -> bacteria does not cover its maintenance -> shrinks 10%
                 self.has_eaten = True
+
                 break
                 
 
 
     def reproduce(self):
-        # reproduces once eaten
-        if self.has_eaten:
+        if self.mass >= self.split_mass:
+            # reproduces once eaten
+            if self.has_eaten:
 
-            # Wenn bereits mehr als max_num_bacteria_in_cell Bakteriean auf einem Feld sind, oder Zufällig random_spread_chance
-            if len(self.model.grid.get_cell_list_contents([self.pos])) > self.max_num_bacteria_in_cell or self.random.random() < self.random_spread_chance:
-                
-                # if it spreads, we randomly look for a position in the neighborhood
-                possible_postitions = self.model.grid.get_neighborhood(
-                    self.pos, moore=self.model.reproduction_spread_moore, include_center=False, radius=self.reproduction_radius
-                )
-                # shuffeling the positions
-                self.model.random.shuffle(possible_postitions)
+                # Wenn bereits mehr als max_num_bacteria_in_cell Bakteriean auf einem Feld sind, oder Zufällig random_spread_chance
+                if len(self.model.grid.get_cell_list_contents([self.pos])) > self.max_num_bacteria_in_cell or self.random.random() < self.random_spread_chance:
+                    
+                    # if it spreads, we randomly look for a position in the neighborhood
+                    possible_postitions = self.model.grid.get_neighborhood(
+                        self.pos, moore=self.model.reproduction_spread_moore, include_center=False, radius=self.reproduction_radius
+                    )
+                    # shuffeling the positions
+                    self.model.random.shuffle(possible_postitions)
 
-                for position in possible_postitions:
-                    # checking if the position is already occupied
-                    if len(self.model.grid.get_cell_list_contents([position])) <= self.max_num_bacteria_in_cell:
-                        new_position = position
-                        break
-                    else:
-                        # this is only needed if there are no good positions, so new_position is defined
-                        new_position = None
+                    for position in possible_postitions:
+                        # checking if the position is already occupied
+                        if len(self.model.grid.get_cell_list_contents([position])) <= self.max_num_bacteria_in_cell:
+                            new_position = position
+                            break
+                        else:
+                            # this is only needed if there are no good positions, so new_position is defined
+                            new_position = None
 
-            else:
-                # own position is good for a new cell
-                new_position = self.pos
+                else:
+                    # own position is good for a new cell
+                    new_position = self.pos
 
-            # if all possible positions already contain max_num_bacteria_in_cell, reproduction is canceled
-            if new_position != None:
+                # if all possible positions already contain max_num_bacteria_in_cell, reproduction is canceled
+                if new_position != None:
 
-                # creating and placing new bacteria
-                new_bacteria = Type_a_1(self.model.next_id(), self.model, new_position)
-                self.model.grid.place_agent(new_bacteria, new_position)
-                self.model.schedule.add(new_bacteria)
+                    # creating and placing new bacteria
+                    new_bacteria = Type_a_1(self.model.next_id(), self.model, new_position, self.mass / 2)
+                    self.mass = self.mass / 2
+                    self.model.grid.place_agent(new_bacteria, new_position)
+                    self.model.schedule.add(new_bacteria)
 
-        # has_eaten reset
-        # if all neighboring positions are occupied, no new cell will be created and has_eaten will be reset anyway 
-        # this was a good was to control the spread, but can be changed if you wish so
-        self.has_eaten = False
+            # has_eaten reset
+            # if all neighboring positions are occupied, no new cell will be created and has_eaten will be reset anyway 
+            # this was a good was to control the spread, but can be changed if you wish so
+            self.has_eaten = False
 
 
     # cannot die at the moment
     # function and code is kept here, for easier customization
     def die(self):
-        return
+        
+        if self.mass < self.min_mass:
+                
+                self.model.grid.remove_agent(self)
+                self.model.schedule.remove(self)
         #if self.random.random() < self.dying_chance:
         #    self.model.grid.remove_agent(self)
         #    self.model.schedule.remove(self)
@@ -280,7 +322,6 @@ class Type_a_2(mesa.Agent):
         self.max_possible_consumption = 0
         self.energy_yield = 0.5 # Reference paper has 0.15, does not work in our case because then the produced_energy < survival_energy
         self.maintenance = 0.1 # Reference paper. Units of energy that a unit of mass requieres per each time step
-        
        
         self.produced_energy = 0
         self.survival_energy = 0
@@ -351,7 +392,7 @@ class Type_a_2(mesa.Agent):
 
                 # subract nutrient and set has_eaten
                 soil.nutrients[nutrient] -= actual_consumption
-                self.has_eaten = True
+
                 
                 self.produced_energy = self.energy_yield * actual_consumption # convert the consumed nutrients into energy
                 self.survival_energy = self.maintenance * self.mass # the energy that bacteria needs to survive
@@ -362,7 +403,7 @@ class Type_a_2(mesa.Agent):
                     self.mass += self.energy_netto / 2 # Reference paper. If there is some avalaible energy, bacterium will convert half of it into mass
                 else: 
                     self.mass = 0.9 * self.mass # Reference paper. If the netto energy balance is negative -> bacteria does not cover its maintenance -> shrinks 10%
-
+                self.has_eaten = True
 
                 break
                 
@@ -423,18 +464,15 @@ class Type_a_2(mesa.Agent):
     # dies if its on the same field as soil that contains an antibiotic from antibiotics_list
     def die(self):
 
-        if self.mass < self.min_mass:
-            
-            self.model.grid.remove_agent(self)
-            self.model.schedule.remove(self)
-
         soil = self.model.grid.get_cell_list_contents([self.pos])[0]
         for antibiotic in self.antibiotics_list:
 
             # check for antibiotic
-            if antibiotic in soil.antibiotics and soil.antibiotics[antibiotic] > 0:
+            if (antibiotic in soil.antibiotics and soil.antibiotics[antibiotic] > 0) or (self.mass < self.min_mass):
                 # die
-                soil.antibiotics[antibiotic] -= 1
+                if antibiotic in soil.antibiotics and soil.antibiotics[antibiotic] > 0:
+                    soil.antibiotics[antibiotic] -= 1
+
                 self.model.grid.remove_agent(self)
                 self.model.schedule.remove(self)
 
@@ -442,6 +480,8 @@ class Type_a_2(mesa.Agent):
         #if self.random.random() < self.dying_chance:
         #    self.model.grid.remove_agent(self)
         #    self.model.schedule.remove(self)
+
+
 
 ### DATA COLLECTOR
 
@@ -455,7 +495,7 @@ class Microbiome(mesa.Model):
     """A model with some number of agents."""
     # EVERYTHING WITH FIVE HASHTAGS IS RELATED TO INITIAL MESA SCAFFOLD AND COULD BE USEFULL IN THE FUTURE
 
-    def __init__(self, num_type_a_1, num_type_a_2 ,is_torus, grid_height, grid_width, avrg_mass_num_type_a_2 = average_bacteria_mass): 
+    def __init__(self, num_type_a_1, num_type_a_2 ,is_torus, grid_height, grid_width, avrg_mass_num_type_a = average_bacteria_mass): 
 
         ################################
         ### CUSTOMIZABLE VARIABLES
@@ -524,7 +564,7 @@ class Microbiome(mesa.Model):
         for i in range(num_type_a_1):
             x = self.random.randrange(self.grid.width)
             y = self.random.randrange(self.grid.height)
-            a = Type_a_1(self.next_id(), self, (x, y))
+            a = Type_a_1(self.next_id(), self, (x, y), avrg_mass_num_type_a)
             self.schedule.add(a)
             # Add the agent to a random grid cell
             self.grid.place_agent(a, (x, y))
@@ -533,7 +573,7 @@ class Microbiome(mesa.Model):
         for i in range(num_type_a_2):
             x = self.random.randrange(self.grid.width)
             y = self.random.randrange(self.grid.height)
-            a = Type_a_2(self.next_id(), self, (x, y), avrg_mass_num_type_a_2)
+            a = Type_a_2(self.next_id(), self, (x, y), avrg_mass_num_type_a)
             self.schedule.add(a)
             # Add the agent to a random grid cell
             self.grid.place_agent(a, (x, y))

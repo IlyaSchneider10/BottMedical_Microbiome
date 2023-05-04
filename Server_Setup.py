@@ -1,6 +1,6 @@
 import mesa
 
-from Model_Ilya import Microbiome, Soil, Type_a_1, Type_a_2 #Model_Ilya_Play
+from Model_Ilya_Play import Microbiome, Soil, Type_a_1, Type_a_2
 
 # EVERYTHING WITH FIVE HASHTAGS IS RELATED TO INITIAL MESA SCAFFOLD AND COULD BE USEFULL IN THE FUTURE
 
@@ -50,10 +50,10 @@ model_params = {
     ##### ),
     "STATIC_TEXT2": mesa.visualization.StaticText('<br><h4>Type A 1 und Type A 2</h4>(Sub-Arten Staphylococcus aureus)<br> Typ A 1 kann Antibiotika gegen Typ A 2 absondern'),
     "num_type_a_1": mesa.visualization.Slider(
-        "Type_a_1 Anfangspopulation", 1, 0, 10, description="Zufällig Verteilt"
+        "Type_a_1 Anfangspopulation", 1, 0, 50, description="Zufällig Verteilt"
     ),
     "num_type_a_2": mesa.visualization.Slider(
-        "Type_a_2 Anfangspopulation", 1, 0, 10, description="Zufällig Verteilt"
+        "Type_a_2 Anfangspopulation", 1, 0, 50, description="Zufällig Verteilt"
     ),
     "STATIC_TEXT5": mesa.visualization.StaticText('<br><h4>Grid</h4> Torus: Ein Torusgitter ist ein zweidimensionales Gitter, das sich zu einem Ring formt, indem die gegenüberliegenden Ränder verbunden werden.<br>grid_width und grid_height: an der Visualisierung änder sich nichts, es wird aber nur ein Teil des Gitters verwendet'),
     "is_torus": mesa.visualization.Checkbox(
