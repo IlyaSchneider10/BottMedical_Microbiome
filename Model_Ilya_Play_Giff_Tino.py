@@ -73,7 +73,7 @@ def get_average_pos(lst):
 
 def avoid_identical_clones(mean_value, variation_coefficient = 0.1, num_samples = 1):
 
-    values = np.random.normal(mean_value, variation_coefficient * mean_value, num_samples)
+    values = np.random.normal(mean_value, variation_coefficient*mean_value, num_samples)
 
     negative_indices = np.where(values <= 0)[0]
 
@@ -85,8 +85,7 @@ def avoid_identical_clones(mean_value, variation_coefficient = 0.1, num_samples 
 
     return values
 
-average_bacteria_mass = 280 # mass is 280 femtogram, which is weight from average bacteria; -> eventually substitute it for size may be, easier to estimate than mass
-viability_time = 20 # how many times can a bacteria have negative netto_energy and shrink
+average_bacteria_mass = 280 # mass is 280 femtogram, which is weight from average bacteria; 
 
 ### PREDATOR
 
@@ -97,11 +96,11 @@ class Type_a_1(mesa.Agent):
 
         ##### Ilya Additions:
         self.mass = avoid_identical_clones(mass)
-        self.split_mass = avoid_identical_clones(average_bacteria_mass * 0.3) #Reference paper + ChatGPT
-        self.min_mass = average_bacteria_mass * 0.3 / 2 #Reference paper. I assume that the bacteria dies if its mass is bellow the minimal mass -> wrong assumption    
+        self.split_mass = avoid_identical_clones(average_bacteria_mass * 0.9) #Reference paper + ChatGPT
+        self.min_mass = average_bacteria_mass / 2 #Reference paper. I assume that the bacteria dies if its mass is bellow the minimal mass -> wrong assumption    
 
-        self.avaliability = 0.15 # Reference paper. Local avaliability of nutrients in a spatial cell for each bacterium
-        self.nutrient_uptake_ratio = avoid_identical_clones(0.25) # Reference paper
+        self.avaliability = 0.35 # Reference paper. Local avaliability of nutrients in a spatial cell for each bacterium
+        self.nutrient_uptake_ratio = avoid_identical_clones(0.75) # Reference paper
         self.max_individual_uptake = self.mass * self.nutrient_uptake_ratio
         self.max_possible_consumption = 0
         self.energy_yield = 0.5 # Reference paper has 0.15, does not work in our case because then the produced_energy < survival_energy
@@ -309,16 +308,17 @@ class Type_a_1(mesa.Agent):
 
 class Type_a_2(mesa.Agent):
 
-    def __init__(self, unique_id, model, pos, mass, viability_time):
+    def __init__(self, unique_id, model, pos, mass):
         super().__init__(unique_id, model)
 
         ##### Ilya Additions:
         self.mass = avoid_identical_clones(mass)
-        self.split_mass = avoid_identical_clones(average_bacteria_mass * 1.3) #Reference paper + ChatGPT
-        self.min_mass = average_bacteria_mass * 0.3 #Reference paper. I assume that the bacteria dies if its mass is bellow the minimal mass -> wrong assumption 
+        self.split_mass = avoid_identical_clones(average_bacteria_mass * 0.9) #Reference paper + ChatGPT
+        self.min_mass = average_bacteria_mass / 2 #Reference paper. I assume that the bacteria dies if its mass is bellow the minimal mass -> wrong assumption 
 
-        self.avaliability = 0.2 # Reference paper 0.15. Local avaliability of nutrients in a spatial cell for each bacterium
-        self.nutrient_uptake_ratio = avoid_identical_clones(0.3) # Reference paper 0.25
+        self.avaliability = 0.35 # Reference paper. Local avaliability of nutrients in a spatial cell for each bacterium
+        self.nutrient_uptake_ratio = avoid_identical_clones(0.75) # Reference paper
+        self.max_individual_uptake = self.mass * self.nutrient_uptake_ratio
         self.max_possible_consumption = 0
         self.energy_yield = 0.5 # Reference paper has 0.15, does not work in our case because then the produced_energy < survival_energy
         self.maintenance = 0.1 # Reference paper. Units of energy that a unit of mass requieres per each time step
@@ -326,23 +326,20 @@ class Type_a_2(mesa.Agent):
         self.produced_energy = 0
         self.survival_energy = 0
         self.energy_netto = 0 # Netto energy produced by bacteria during eating. If positive -> bacterium acquires mass, if negative -> shrinks
-
-        self.max_viability_time = np.round(avoid_identical_clones(viability_time)) # maximum amount of times a bacteria can have a negative_netto energy
-        self.viability_index = 0 # the viability index of the bacteria, if it becomes > than self.max_viability_time the bacteria dies or when bacteria has no space to reproduce
-        self.dying_chance = np.random.uniform(0.1/100, 1/100) # Each bacterium has a probability between 0.1 and 1% to die
+        
 
         ################################
         ### CUSTOMIZABLE VARIABLES
         ################################
         # spreads the dying, to not create big bumps in the graph
         # example: average 40 turns --> 1/40 = 0.025
-        ##### self.dying_chance = 0.025
+        self.dying_chance = 0.025
         # acts as health of the bacteria
         self.sturdiness = 1
         # limits the number of bacteria in a single cell for performance and better spreading
-        self.max_num_bacteria_in_cell = 5
+        self.max_num_bacteria_in_cell = 2
         # if no cell with less than self.max_num_bacteria_in_cell is found, reproduction will not take place
-        self.reproduction_radius = 3
+        self.reproduction_radius = 2
         # chance to spread when self.max_num_bacteria_in_cell is not reached, to fasten the spread
         self.random_spread_chance = 0.1
         # if True it wont spread on fields containing antibiotics against it
@@ -387,9 +384,9 @@ class Type_a_2(mesa.Agent):
             if nutrient in soil.nutrients and soil.nutrients[nutrient] > 0:
                
                 self.max_possible_consumption = self.avaliability * soil.nutrients[nutrient] # the biggest amount each bacterium can consume
-                max_individual_uptake = self.mass * self.nutrient_uptake_ratio
-                if self.max_possible_consumption >= max_individual_uptake:
-                    actual_consumption = max_individual_uptake # make sure that bacteria does not consume more nutrients than its individual consumption upper bounf
+
+                if self.max_possible_consumption >= self.max_individual_uptake:
+                    actual_consumption = self.max_individual_uptake # make sure that bacteria does not consume more nutrients than its individual consumption upper bounf
                 else: 
                     actual_consumption = self.max_possible_consumption
 
@@ -406,7 +403,6 @@ class Type_a_2(mesa.Agent):
                     self.mass += self.energy_netto / 2 # Reference paper. If there is some avalaible energy, bacterium will convert half of it into mass
                 else: 
                     self.mass = 0.9 * self.mass # Reference paper. If the netto energy balance is negative -> bacteria does not cover its maintenance -> shrinks 10%
-                    self.viability_index += 1
                 self.has_eaten = True
 
                 break
@@ -453,21 +449,17 @@ class Type_a_2(mesa.Agent):
                 # if all possible positions already contain max_num_bacteria_in_cell, reproduction is canceled
                 if new_position != None:
 
-                    # Updating the mother bacteria
-                    self.mass = self.mass / 2
-                    self.max_individual_uptake = self.mass * self.nutrient_uptake_ratio
-
                     # creating and placing new bacteria
-                    new_bacteria = Type_a_2(self.model.next_id(), self.model, new_position, self.mass / 2, viability_time)
+                    new_bacteria = Type_a_2(self.model.next_id(), self.model, new_position, self.mass / 2)
+                    self.mass = self.mass / 2
                     self.model.grid.place_agent(new_bacteria, new_position)
                     self.model.schedule.add(new_bacteria)
-                else:
-                    self.viability_index += 1
 
             # has_eaten reset
             # if all neighboring positions are occupied, no new cell will be created and has_eaten will be reset anyway 
             # this was a good was to control the spread, but can be changed if you wish so
             self.has_eaten = False
+
 
     # dies if its on the same field as soil that contains an antibiotic from antibiotics_list
     def die(self):
@@ -476,13 +468,19 @@ class Type_a_2(mesa.Agent):
         for antibiotic in self.antibiotics_list:
 
             # check for antibiotic
-            if (antibiotic in soil.antibiotics and soil.antibiotics[antibiotic] > 0) or (self.mass < self.min_mass) or (self.viability_index >= self.max_viability_time) or (self.random.random() < self.dying_chance):
+            if (antibiotic in soil.antibiotics and soil.antibiotics[antibiotic] > 0) or (self.random.random() < self.dying_chance): # or (self.mass < self.min_mass)
                 # die
                 if antibiotic in soil.antibiotics and soil.antibiotics[antibiotic] > 0:
                     soil.antibiotics[antibiotic] -= 1
 
                 self.model.grid.remove_agent(self)
                 self.model.schedule.remove(self)
+
+
+        #if self.random.random() < self.dying_chance:
+        #    self.model.grid.remove_agent(self)
+        #    self.model.schedule.remove(self)
+
 
 
 ### DATA COLLECTOR
@@ -497,7 +495,7 @@ class Microbiome(mesa.Model):
     """A model with some number of agents."""
     # EVERYTHING WITH FIVE HASHTAGS IS RELATED TO INITIAL MESA SCAFFOLD AND COULD BE USEFULL IN THE FUTURE
 
-    def __init__(self, num_type_a_1, num_type_a_2 ,is_torus, grid_height, grid_width, avrg_mass_num_type_a = average_bacteria_mass, avrg_viability_time_type_a = viability_time): 
+    def __init__(self, num_type_a_1, num_type_a_2 ,is_torus, grid_height, grid_width, avrg_mass_num_type_a = average_bacteria_mass): 
 
         ################################
         ### CUSTOMIZABLE VARIABLES
@@ -575,7 +573,7 @@ class Microbiome(mesa.Model):
         for i in range(num_type_a_2):
             x = self.random.randrange(self.grid.width)
             y = self.random.randrange(self.grid.height)
-            a = Type_a_2(self.next_id(), self, (x, y), avrg_mass_num_type_a, viability_time)
+            a = Type_a_2(self.next_id(), self, (x, y), avrg_mass_num_type_a)
             self.schedule.add(a)
             # Add the agent to a random grid cell
             self.grid.place_agent(a, (x, y))
