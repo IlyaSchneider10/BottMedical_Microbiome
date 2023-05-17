@@ -50,7 +50,7 @@ model_params = {
     ##### ),
     "STATIC_TEXT2": mesa.visualization.StaticText('<br><h4>Type A 1 und Type A 2</h4>(Sub-Arten Staphylococcus aureus)<br> Typ A 1 kann Antibiotika gegen Typ A 2 absondern'),
     "num_type_a_1": mesa.visualization.Slider(
-        "Type_a_1 Anfangspopulation", 0, 0, 20, description="Zufällig Verteilt"
+        "Type_a_1 Anfangspopulation", 10, 0, 20, description="Zufällig Verteilt"
     ),
     "num_type_a_2": mesa.visualization.Slider(
         "Type_a_2 Anfangspopulation", 30, 0, 30, description="Zufällig Verteilt"
@@ -60,15 +60,15 @@ model_params = {
         "Torus", False, description=""
     ),
     "grid_width": mesa.visualization.Slider(
-        "grid_width", 50, 0, 100, description=""
+        "grid_width", 50, 0, 50, description=""
     ),
     "grid_height": mesa.visualization.Slider(
-        "grid_height", 50, 0, 100, description=""
+        "grid_height", 50, 0, 50, description=""
     )
 }
 
 # set the portrayal function and size of the canvas for visualization
-canvas_element = mesa.visualization.CanvasGrid(bacteria_portrayal, 100, 100, 500, 500)
+canvas_element = mesa.visualization.CanvasGrid(bacteria_portrayal, 50, 50, 500, 500)
 
 # Namen der Labels müssen gleich sein wie im DataCollector im model
 chart_element = mesa.visualization.ChartModule(
