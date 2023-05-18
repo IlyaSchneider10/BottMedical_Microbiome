@@ -132,11 +132,11 @@ class Type_a_1(mesa.Agent):
         # chance to spread when self.max_num_bacteria_in_cell is not reached, to fasten the spread
         self.random_spread_chance = 0.1
         # scouting is done in a moore radius, scouting for stressed_by
-        self.scouting_radius = 2
+        self.scouting_radius = 1
         # when a object of this type is found in the scouting radius, I get stressed
         self.stressed_by = [Type_a_2]
         # radius in which the antibiotica will be spread
-        self.stress_radius = 2
+        self.stress_radius = 1
         # nutrition and antibiotics need to be in the respective dict in the Soil object
         self.nutrition_list = ["Type_a_food"]
         ################################
