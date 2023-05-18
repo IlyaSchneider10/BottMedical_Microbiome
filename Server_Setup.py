@@ -1,6 +1,6 @@
 import mesa
 
-from Model_Ilya_Play import Microbiome, Soil, Type_a_1, Type_a_2
+from Model_Ilya_Play_Area import Microbiome, Soil, Type_a_1, Type_a_2
 
 # EVERYTHING WITH FIVE HASHTAGS IS RELATED TO INITIAL MESA SCAFFOLD AND COULD BE USEFULL IN THE FUTURE
 
@@ -48,22 +48,26 @@ model_params = {
     ##### "type_a_population_limit": mesa.visualization.Slider(
     #####    "Type_a Population Limit", 1000, 0, 10000, description="0 means no Limit"
     ##### ),
-    "STATIC_TEXT2": mesa.visualization.StaticText('<br><h4>Type A 1 und Type A 2</h4>(Sub-Arten Staphylococcus aureus)<br> Typ A 1 kann Antibiotika gegen Typ A 2 absondern'),
+    "STATIC_TEXT2": mesa.visualization.StaticText('<br><h4>Type A 1 and Type A 2</h4> Typ A 1 can in proximity to Typ A 2 secrete antibiotica against it.'),
     "num_type_a_1": mesa.visualization.Slider(
-        "Type_a_1 Anfangspopulation", 10, 0, 20, description="Zufällig Verteilt"
+        "Type A 1 strating population", 15, 0, 50, description="Randomly distributed"
     ),
     "num_type_a_2": mesa.visualization.Slider(
-        "Type_a_2 Anfangspopulation", 30, 0, 30, description="Zufällig Verteilt"
+        "Type A 2 strating population", 50, 0, 50, description="Randomly distributed"
     ),
-    "STATIC_TEXT5": mesa.visualization.StaticText('<br><h4>Grid</h4> Torus: Ein Torusgitter ist ein zweidimensionales Gitter, das sich zu einem Ring formt, indem die gegenüberliegenden Ränder verbunden werden.<br>grid_width und grid_height: an der Visualisierung änder sich nichts, es wird aber nur ein Teil des Gitters verwendet'),
+    "STATIC_TEXT3": mesa.visualization.StaticText('<br><h4>Immediate killing</h4> If True the predator kills the pray immediately with a set up agressiveness. If False reduces netto energy of bacteria by a set up agressiveness.'),
+    "immediate_killing": mesa.visualization.Checkbox(
+        "Immediate killing", False, description=""
+    ),
+    "STATIC_TEXT5": mesa.visualization.StaticText('<br><h4>Grid</h4> Torus grid connects the opposite sides of the simualtion grid.'),
     "is_torus": mesa.visualization.Checkbox(
         "Torus", False, description=""
     ),
     "grid_width": mesa.visualization.Slider(
-        "grid_width", 50, 0, 50, description=""
+        "Grid width", 50, 0, 50, description=""
     ),
     "grid_height": mesa.visualization.Slider(
-        "grid_height", 50, 0, 50, description=""
+        "Grid height", 50, 0, 50, description=""
     )
 }
 
