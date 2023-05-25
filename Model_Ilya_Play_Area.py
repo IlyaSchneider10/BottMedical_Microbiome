@@ -2,6 +2,7 @@ import mesa
 import math
 import numpy as np
 import operator
+import random
 
 ### SOIL
 
@@ -115,7 +116,7 @@ class Type_a_1(mesa.Agent):
 
         self.max_viability_time = np.round(avoid_identical_clones(viability_time)) # maximum amount of times a bacteria can have a negative_netto energy
         self.viability_index = 0 # the viability index of the bacteria, if it becomes > than self.max_viability_time the bacteria dies or when bacteria has no space to reproduce
-        self.dying_chance = np.random.uniform(0.1/100, 1/100) # Each bacterium has a probability between 0.1 and 1% to die
+        self.dying_chance = np.random.uniform(0.001, 0.01) # Each bacterium has a probability between 0.1 and 1% to die
 
         ################################
         ### CUSTOMIZABLE VARIABLES
@@ -227,7 +228,7 @@ class Type_a_1(mesa.Agent):
                 
 
                 if self.energy_netto >= 0:
-                    self.area += self.energy_netto / 2 # Reference paper. If there is some avalaible energy, bacterium will convert half of it into area
+                    self.area += self.energy_netto * 0.5 # Reference paper. If there is some avalaible energy, bacterium will convert half of it into area
                 else: 
                     self.area = 0.9 * self.area # Reference paper. If the netto energy balance is negative -> bacteria does not cover its maintenance -> shrinks 10%
                     self.viability_index += 1
@@ -268,11 +269,11 @@ class Type_a_1(mesa.Agent):
                 # if all possible positions already contain max_num_bacteria_in_cell, reproduction is canceled
                 if new_position != None:
 
-                    self.area = self.area / 2
+                    self.area = self.area * 0.5
                     self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
 
                     # creating and placing new bacteria
-                    new_bacteria = Type_a_1(self.model.next_id(), self.model, new_position, self.area / 2, viability_time)
+                    new_bacteria = Type_a_1(self.model.next_id(), self.model, new_position, self.area * 0.5, viability_time)
                     self.model.grid.place_agent(new_bacteria, new_position)
                     self.model.schedule.add(new_bacteria)
                 else:
@@ -337,7 +338,7 @@ class Type_a_2(mesa.Agent):
 
         self.max_viability_time = np.round(avoid_identical_clones(viability_time)) # maximum amount of times a bacteria can have a negative_netto energy
         self.viability_index = 0 # the viability index of the bacteria, if it becomes > than self.max_viability_time the bacteria dies or when bacteria has no space to reproduce
-        self.dying_chance = np.random.uniform(0.1/100, 1/100) # Each bacterium has a probability between 0.1 and 1% to die
+        self.dying_chance = np.random.uniform(0.001, 0.01) # Each bacterium has a probability between 0.1 and 1% to die
 
         self.immediate_killing = immediate_killing # Default False
         self.agressiveness = avoid_identical_clones(agressiveness)# If immediate_killing = T its probability of the immediate kill, else percentage of energy decreased from the netto_energy of bacteria
@@ -353,7 +354,7 @@ class Type_a_2(mesa.Agent):
         # limits the number of bacteria in a single cell for performance and better spreading
         self.max_num_bacteria_in_cell = 5
         # if no cell with less than self.max_num_bacteria_in_cell is found, reproduction will not take place
-        self.reproduction_radius = 3
+        self.reproduction_radius = 1
         # chance to spread when self.max_num_bacteria_in_cell is not reached, to fasten the spread
         self.random_spread_chance = 0.1
         # if True it wont spread on fields containing antibiotics against it
@@ -421,16 +422,48 @@ class Type_a_2(mesa.Agent):
 
 
                 if self.energy_netto >= 0:
-                    self.area += self.energy_netto / 2 # Reference paper. If there is some avalaible energy, bacterium will convert half of it into area
+                    self.area += self.energy_netto * 0.5 # Reference paper. If there is some avalaible energy, bacterium will convert half of it into area
                 else: 
                     self.area = 0.9 * self.area # Reference paper. If the netto energy balance is negative -> bacteria does not cover its maintenance -> shrinks 10%
                     self.viability_index += 1
                 self.has_eaten = True
 
-                break
+                break   
+
+    #Recursive function that returns a free position of one of the neighbours, output is either none or a new free position and a previous full position
+    def find_position_around_neighbours(self, position, depth = 0, max_depth = 25): # !!! make max_depth dependent on the grid size !!!
+        
+        if depth > max_depth:
+            return None
+
+        neighbor_positions = self.model.grid.get_neighborhood(position, moore=True, include_center=False)
+        num_neighbors = len(neighbor_positions)
+        output = None
+
+        # Retrieve the contents of all neighboring cells
+        neighbor_contents = self.model.grid.get_cell_list_contents(neighbor_positions)
+
+        for new_pos, cell_agents in zip(neighbor_positions, neighbor_contents):
+            # Check that all bacteria in the cell are of the same type
+            same_class = all(isinstance(agent, self.__class__) for agent in cell_agents)
+            
+            if same_class:
+                count = sum(1 for agent in cell_agents if agent != self)
                 
+                if count != num_neighbors * self.max_num_bacteria_in_cell:
+                    output = [new_pos, position]
+                    return output
 
+        if output is None:
+           
+            for next_pos in neighbor_positions:
+                output = self.find_position_around_neighbours(next_pos, depth + 1, max_depth)
+                
+                if output is not None:
+                    return output
 
+        return output
+    
     def reproduce(self):
 
         if self.area >= self.split_area:
@@ -468,19 +501,36 @@ class Type_a_2(mesa.Agent):
                     # own position is good for a new cell
                     new_position = self.pos
 
-                # if all possible positions already contain max_num_bacteria_in_cell, reproduction is canceled
+                # Reproduces in the new position
                 if new_position != None:
 
                     # Updating the mother bacteria
-                    self.area = self.area / 2
+                    self.area = self.area * 0.5
                     self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
 
                     # creating and placing new bacteria
-                    new_bacteria = Type_a_2(self.model.next_id(), self.model, new_position, self.area / 2, viability_time, self.immediate_killing, agressiveness)
+                    new_bacteria = Type_a_2(self.model.next_id(), self.model, new_position, self.area * 0.5, viability_time, self.immediate_killing, agressiveness)
                     self.model.grid.place_agent(new_bacteria, new_position)
                     self.model.schedule.add(new_bacteria)
+
+                #If there is no free position the neighbours are pushed to create a free position
                 else:
-                    self.viability_index += 1
+                    move_positions = self.find_position_around_neighbours(self.pos)
+
+                    if move_positions is not None:
+                        move_position, replicate_position = move_positions # unpack the positions 
+                        move_candidates = self.model.grid.get_cell_list_contents(replicate_position)
+                        self.model.random.shuffle(move_candidates)
+        
+                        self.model.grid.move_agent(move_candidates[0], move_position)
+
+                        new_bacteria = Type_a_2(self.model.next_id(), self.model, replicate_position, self.area * 0.5, viability_time, self.immediate_killing, agressiveness)
+                        self.model.grid.place_agent(new_bacteria, replicate_position)
+                        self.model.schedule.add(new_bacteria)
+
+                    else:
+                        self.viability_index += 1
+
 
             # has_eaten reset
             # if all neighboring positions are occupied, no new cell will be created and has_eaten will be reset anyway 
