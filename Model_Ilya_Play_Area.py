@@ -356,10 +356,10 @@ class Type_a_2(mesa.Agent):
         # if no cell with less than self.max_num_bacteria_in_cell is found, reproduction will not take place
         self.reproduction_radius = 1
         # chance to spread when self.max_num_bacteria_in_cell is not reached, to fasten the spread
-        self.random_spread_chance = 0.1
+        self.random_spread_chance = 0.5
         # if True it wont spread on fields containing antibiotics against it
         # False creates a bacteria free zone between type_a_1 and type_a_2
-        self.spread_in_antibiotics = True ##### Used to be False
+        ##### self.spread_in_antibiotics = True ##### Used to be False
         # nutrition and antibiotics need to be in the respective dict in the Soil object
         self.nutrition_list = ["Type_a_food"]
         self.antibiotics_list = ["Type_a_2"] # is created dynamically by type_a_1
@@ -429,41 +429,42 @@ class Type_a_2(mesa.Agent):
                 self.has_eaten = True
 
                 break   
-
-    #Recursive function that returns a free position of one of the neighbours, output is either none or a new free position and a previous full position
-    def find_position_around_neighbours(self, position, depth = 0, max_depth = 25): # !!! make max_depth dependent on the grid size !!!
-        
-        if depth > max_depth:
-            return None
-
-        neighbor_positions = self.model.grid.get_neighborhood(position, moore=True, include_center=False)
-        num_neighbors = len(neighbor_positions)
-        output = None
-
-        # Retrieve the contents of all neighboring cells
-        neighbor_contents = self.model.grid.get_cell_list_contents(neighbor_positions)
-
-        for new_pos, cell_agents in zip(neighbor_positions, neighbor_contents):
-            # Check that all bacteria in the cell are of the same type
-            same_class = all(isinstance(agent, self.__class__) for agent in cell_agents)
-            
-            if same_class:
-                count = sum(1 for agent in cell_agents if agent != self)
-                
-                if count != num_neighbors * self.max_num_bacteria_in_cell:
-                    output = [new_pos, position]
-                    return output
-
-        if output is None:
-           
-            for next_pos in neighbor_positions:
-                output = self.find_position_around_neighbours(next_pos, depth + 1, max_depth)
-                
-                if output is not None:
-                    return output
-
-        return output
     
+    def find_free_neighbor(self, position): # find a neighboring cell to reproduce. If no free position is found, the output is the original input position
+        # second output indicates if the input position will be overpopulated after the division
+        # third output is a random neighbor position in case the cell will be overpopulated after division
+
+        neighbor_positions = self.model.grid.get_neighborhood(position, moore=self.model.reproduction_spread_moore, include_center=False, radius=self.reproduction_radius)
+        self.model.random.shuffle(neighbor_positions)
+
+        for p in neighbor_positions:
+
+            pos_contents = self.model.grid.get_cell_list_contents(p)
+            pos_contents_bacteria = [c for c in pos_contents if not isinstance(c, Soil)]
+            num_bacteria = len(pos_contents_bacteria)
+
+            if num_bacteria < self.max_num_bacteria_in_cell:
+                return [p, False, None]
+        
+        return [position, True, neighbor_positions[0]]
+
+    
+    def move_neighbor(self, moving_position, moving_bacteria, moving_bacteria_number):
+
+        if moving_bacteria_number > 0:
+
+            for bacteria in moving_bacteria:
+                self.model.grid.move_agent(bacteria, moving_position)
+
+            if moving_bacteria_number > 0:
+
+                neighbor_positions = self.model.grid.get_neighborhood(moving_position, moore=True, include_center=False)
+                self.model.random.shuffle(neighbor_positions)
+                new_moving_bacteria = moving_bacteria[:-1]
+                new_moving_bacteria_number = len(new_moving_bacteria)
+
+                self.move_neighbor(neighbor_positions[0], new_moving_bacteria, new_moving_bacteria_number)
+        
     def reproduce(self):
 
         if self.area >= self.split_area:
@@ -471,65 +472,31 @@ class Type_a_2(mesa.Agent):
             if self.has_eaten:
                 # Wenn bereits mehr als max_num_bacteria_in_cell Bakteriean auf einem Feld sind, oder Zufällig random_spread_chance
                 if len(self.model.grid.get_cell_list_contents([self.pos])) > self.max_num_bacteria_in_cell or self.random.random() < self.random_spread_chance:
-                    
-                    # if it spreads, we randomly look for a position in the neighborhood
-                    possible_postitions = self.model.grid.get_neighborhood(
-                        self.pos, moore=self.model.reproduction_spread_moore, include_center=False, radius=self.reproduction_radius
-                    )
-                    # shuffeling the positions
-                    self.model.random.shuffle(possible_postitions)
-
-                    # checking if the position is already occupied
-                    for position in possible_postitions:
-                        pos_contents = self.model.grid.get_cell_list_contents([position])
-                        if len(pos_contents) <= self.max_num_bacteria_in_cell:
-                            # if it can spread in antibiotics
-                            # creates different outcomes
-                            if not self.spread_in_antibiotics:
-                                # spread not possible if antibiotic is in soil, next position will be checked
-                                for antibiotic in self.antibiotics_list:
-                                    if antibiotic in pos_contents[0].antibiotics and pos_contents[0].antibiotics[antibiotic] > 0:
-                                        new_position = None
-                                        continue
-                            new_position = position
-                            break
-                        else:
-                            # this is only needed if there are no good positions, so new_position is defined
-                            new_position = None
-
+                    new_position, cell_overpopulated, neighbor = self.find_free_neighbor(self.pos)
                 else:
                     # own position is good for a new cell
                     new_position = self.pos
+                    cell_overpopulated = False # we know that it is lower than max bacteria number for sure
 
                 # Reproduces in the new position
-                if new_position != None:
+                # Updating the mother bacteria
+                self.area = self.area * 0.5
+                self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
 
-                    # Updating the mother bacteria
-                    self.area = self.area * 0.5
-                    self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
+                # creating and placing new bacteria
+                new_bacteria = Type_a_2(self.model.next_id(), self.model, new_position, self.area * 0.5, viability_time, self.immediate_killing, agressiveness)
+                self.model.grid.place_agent(new_bacteria, new_position)
+                self.model.schedule.add(new_bacteria)
 
-                    # creating and placing new bacteria
-                    new_bacteria = Type_a_2(self.model.next_id(), self.model, new_position, self.area * 0.5, viability_time, self.immediate_killing, agressiveness)
-                    self.model.grid.place_agent(new_bacteria, new_position)
-                    self.model.schedule.add(new_bacteria)
+                #If cell is overpopulated move alll but one bacteria to a neighbor
+                if cell_overpopulated:
 
-                #If there is no free position the neighbours are pushed to create a free position
-                else:
-                    move_positions = self.find_position_around_neighbours(self.pos)
+                    self_contents = self.model.grid.get_cell_list_contents(self.pos) 
+                    self_bacteria_contents = [c for c in self_contents if not isinstance(c, Soil)]
+                    moving_bacteria = self_bacteria_contents[:-1]
+                    moving_bacteria_number = len(moving_bacteria)
 
-                    if move_positions is not None:
-                        move_position, replicate_position = move_positions # unpack the positions 
-                        move_candidates = self.model.grid.get_cell_list_contents(replicate_position)
-                        self.model.random.shuffle(move_candidates)
-        
-                        self.model.grid.move_agent(move_candidates[0], move_position)
-
-                        new_bacteria = Type_a_2(self.model.next_id(), self.model, replicate_position, self.area * 0.5, viability_time, self.immediate_killing, agressiveness)
-                        self.model.grid.place_agent(new_bacteria, replicate_position)
-                        self.model.schedule.add(new_bacteria)
-
-                    else:
-                        self.viability_index += 1
+                    self.move_neighbor(neighbor, moving_bacteria, moving_bacteria_number)
 
 
             # has_eaten reset
