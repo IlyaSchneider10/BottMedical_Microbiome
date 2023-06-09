@@ -352,7 +352,7 @@ class Type_a_2(mesa.Agent):
         # acts as health of the bacteria
         ##### self.sturdiness = 1
         # limits the number of bacteria in a single cell for performance and better spreading
-        self.max_num_bacteria_in_cell = 5
+        self.max_num_bacteria_in_cell = 2
         # if no cell with less than self.max_num_bacteria_in_cell is found, reproduction will not take place
         self.reproduction_radius = 1
         # chance to spread when self.max_num_bacteria_in_cell is not reached, to fasten the spread
@@ -438,17 +438,17 @@ class Type_a_2(mesa.Agent):
 
         for p in neighbor_positions:
 
-            pos_contents = self.model.grid.get_cell_list_contents(p)
+            pos_contents = self.model.grid.get_cell_list_contents([p])
             pos_contents_bacteria = [c for c in pos_contents if not isinstance(c, Soil)]
             num_bacteria = len(pos_contents_bacteria)
 
             if num_bacteria < self.max_num_bacteria_in_cell:
                 return [p, False]
         
-        return [neighbor_positions[0], True]
+        return [p, True]
 
     
-    def microcolony_growth(self, bacteria_to_move, starting_radius, checked_coordinates, max_search_radius = 12):
+    def microcolony_growth(self, bacteria_to_move, starting_radius, checked_coordinates, max_search_radius = 25):
        
         if starting_radius == max_search_radius:
             return True
@@ -458,17 +458,17 @@ class Type_a_2(mesa.Agent):
 
         for c in unchecked_coordinates:
 
-            pos_contents = self.model.grid.get_cell_list_contents(c)
+            pos_contents = self.model.grid.get_cell_list_contents([c])
             pos_contents_bacteria = [p for p in pos_contents if not isinstance(p, Soil)]
+            self.model.random.shuffle(pos_contents_bacteria)
             num_bacteria = len(pos_contents_bacteria)
 
             if num_bacteria < self.max_num_bacteria_in_cell:
                                 
-                self.model.grid.move_agent(bacteria_to_move[0], c)
+                self.model.grid.move_agent(bacteria_to_move, c)
                 return False
-            
-            else:
-                self.microcolony_growth(bacteria_to_move, starting_radius+1, increased_coordinates)
+                
+        return self.microcolony_growth(bacteria_to_move, starting_radius + 1, increased_coordinates)
             
     def reproduce(self):
 
@@ -486,9 +486,9 @@ class Type_a_2(mesa.Agent):
                 #If cell is overpopulated move alll but one bacteria to a neighbor
                 if overpopulation:
 
-                    reproduction_pos_contents = self.model.grid.get_cell_list_contents(new_position)
+                    reproduction_pos_contents = self.model.grid.get_cell_list_contents([new_position])
                     reproduction_pos_contents_bacteria = [r for r in reproduction_pos_contents if not isinstance(r, Soil)]
-                    bacteria_to_move = self.model.random.shuffle(reproduction_pos_contents_bacteria)[0]
+                    bacteria_to_move = reproduction_pos_contents_bacteria[0]
                     
                     checked_coordinates = self.model.grid.get_neighborhood(self.pos, moore=True, include_center = True, radius = 1)
                     overpopulation = self.microcolony_growth(bacteria_to_move, 1, checked_coordinates)
@@ -504,8 +504,9 @@ class Type_a_2(mesa.Agent):
                     new_bacteria = Type_a_2(self.model.next_id(), self.model, new_position, self.area * 0.5, viability_time, self.immediate_killing, agressiveness)
                     self.model.grid.place_agent(new_bacteria, new_position)
                     self.model.schedule.add(new_bacteria)
-
-
+                
+                else:
+                    self.viability_index += 1
             # has_eaten reset
             # if all neighboring positions are occupied, no new cell will be created and has_eaten will be reset anyway 
             # this was a good was to control the spread, but can be changed if you wish so
