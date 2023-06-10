@@ -127,11 +127,11 @@ class Type_a_1(mesa.Agent):
         # acts as health of the bacteria
         ##### self.sturdiness = 1
         # limits the number of bacteria in a single cell for performance and better spreading
-        self.max_num_bacteria_in_cell = 5
+        self.max_num_bacteria_in_cell = 2
         # if no cell with less than self.max_num_bacteria_in_cell is found, reproduction will not take place
-        self.reproduction_radius = 3
+        self.reproduction_radius = 1
         # chance to spread when self.max_num_bacteria_in_cell is not reached, to fasten the spread
-        self.random_spread_chance = 0.1
+        self.random_spread_chance = 0.5
         # scouting is done in a moore radius, scouting for stressed_by
         self.scouting_radius = 1
         # when a object of this type is found in the scouting radius, I get stressed
@@ -448,7 +448,7 @@ class Type_a_2(mesa.Agent):
         return [p, True]
 
     
-    def microcolony_growth(self, bacteria_to_move, starting_radius, checked_coordinates, max_search_radius = 25):
+    def microcolony_growth(self, bacteria_to_move, starting_radius, checked_coordinates, max_search_radius = 26):
        
         if starting_radius == max_search_radius:
             return True
