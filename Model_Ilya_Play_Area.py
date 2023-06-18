@@ -90,7 +90,7 @@ def avoid_identical_clones(mean_value, variation_coefficient = 0.1, num_samples 
 s_mutens_radius = 0.75 # micrometers
 average_bacteria_area = 4 * math.pi * s_mutens_radius**2 # micrometers square, using sphere area formula, if we multiply by the 10^6 factor its 
 viability_time = 50 # how many times can a bacteria have negative netto_energy and shrink
-agressiveness = 0.15
+agressiveness = 0.05
 
 ### PREDATOR
 
@@ -234,17 +234,16 @@ class Type_a_1(mesa.Agent):
                     self.viability_index += 1
                 self.has_eaten = True
 
-                break
                 
-    def find_free_neighbor(self, position): # find a neighboring cell to reproduce. If no free position is found, the output is a random neighbor position
+    def find_free_neighbor(self): # find a neighboring cell to reproduce. If no free position is found, the output is a random neighbor position
         # second output indicates if the input position will be overpopulated after the division
 
-        neighbor_positions = self.model.grid.get_neighborhood(position, moore=self.model.reproduction_spread_moore, include_center=False, radius=self.reproduction_radius)
+        neighbor_positions = self.model.grid.get_neighborhood(self.pos, moore = True, include_center=False, radius=self.reproduction_radius)
         self.model.random.shuffle(neighbor_positions)
 
         for p in neighbor_positions:
 
-            pos_contents = self.model.grid.get_cell_list_contents([p])
+            pos_contents = self.model.grid.get_cell_list_contents(p)
             pos_contents_bacteria = [c for c in pos_contents if not isinstance(c, Soil)]
             num_bacteria = len(pos_contents_bacteria)
 
@@ -257,9 +256,9 @@ class Type_a_1(mesa.Agent):
     def microcolony_growth(self, bacteria_to_move, starting_radius, checked_coordinates, max_search_radius = 26):
        
         if starting_radius == max_search_radius:
-            return True, None
+            return True
         
-        increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore=True, include_center = True, radius = starting_radius + 1)
+        increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = starting_radius + 1)
         unchecked_coordinates = list(set(increased_coordinates) - set(checked_coordinates))
 
         for c in unchecked_coordinates:
@@ -268,37 +267,44 @@ class Type_a_1(mesa.Agent):
             pos_contents_bacteria = [p for p in pos_contents if not isinstance(p, Soil)]
             num_bacteria = len(pos_contents_bacteria)
 
-            expansion_neighbours_contents = self.model.grid.get_neighbors(c, moore =  True, include_center = False, radius = 1)
-            own_type = [e for e in expansion_neighbours_contents if isinstance(e, Type_a_1)]
+            if num_bacteria < self.max_num_bacteria_in_cell:
+                
+                expansion_neighbours_contents = self.model.grid.get_neighbors(c, moore =  True, include_center = True, radius = 1)
+                own_type = [e for e in expansion_neighbours_contents if isinstance(e, Type_a_1)]
 
-            if num_bacteria < self.max_num_bacteria_in_cell and len(own_type) > self.max_num_bacteria_in_cell + 1:
+                if len(own_type) > 0:
 
-                return False, self.model.grid.move_agent(bacteria_to_move, c)
+                    self.model.grid.move_agent(bacteria_to_move, c)
+                    return False
                 
         return self.microcolony_growth(bacteria_to_move, starting_radius + 1, increased_coordinates)
-
+            
     def reproduce(self):
 
         if self.area >= self.split_area:
 
             if self.has_eaten:
+
+                self_contents = self.model.grid.get_cell_list_contents([self.pos])
+                self_contents_bacteria = [s for s in self_contents if not isinstance(s, Soil)]
                 # Wenn bereits mehr als max_num_bacteria_in_cell Bakteriean auf einem Feld sind, oder Zufällig random_spread_chance
-                if len(self.model.grid.get_cell_list_contents([self.pos])) > self.max_num_bacteria_in_cell or self.random.random() < self.random_spread_chance:
-                    new_position, overpopulation = self.find_free_neighbor(self.pos)
+                if len(self_contents_bacteria) >= self.max_num_bacteria_in_cell or self.random.random() < self.random_spread_chance:
+                    new_position, overpopulation = self.find_free_neighbor()
                 else:
                     # own position is good for a new cell
                     new_position = self.pos
                     overpopulation = False # we know that it is lower than max bacteria number for sure
                 
-                #If cell is overpopulated move alll but one bacteria to a neighbor
+                #If cell is overpopulated move all but one bacteria to a neighbor
                 if overpopulation:
 
-                    reproduction_pos_contents = self.model.grid.get_cell_list_contents([new_position])
-                    reproduction_pos_contents_bacteria = [r for r in reproduction_pos_contents if not isinstance(r, Soil)]
-                    bacteria_to_move = reproduction_pos_contents_bacteria[0]
+                    neighbouring_bacteria = self.model.grid.get_neighbors(self.pos, moore =  True, include_center = True, radius = 1)
+                    own_type_neighbouring_bacteria = [n for n in neighbouring_bacteria if isinstance(n, Type_a_1)]
+                    self.model.random.shuffle(own_type_neighbouring_bacteria)
+                    bacteria_to_move = own_type_neighbouring_bacteria[0]
                     
-                    checked_coordinates = self.model.grid.get_neighborhood(self.pos, moore=True, include_center = True, radius = 1)
-                    overpopulation, _ = self.microcolony_growth(bacteria_to_move, 1, checked_coordinates)
+                    checked_coordinates = self.model.grid.get_neighborhood(self.pos, moore = True, include_center = True, radius = 1)
+                    overpopulation = self.microcolony_growth(bacteria_to_move, 1, checked_coordinates)
 
                 if not overpopulation:
 
@@ -314,10 +320,8 @@ class Type_a_1(mesa.Agent):
                 
                 else:
                     self.viability_index += 1
-            # has_eaten reset
-            # if all neighboring positions are occupied, no new cell will be created and has_eaten will be reset anyway 
-            # this was a good was to control the spread, but can be changed if you wish so
-            self.has_eaten = False
+
+                self.has_eaten = False
     
     def die(self):
         
@@ -458,14 +462,12 @@ class Type_a_2(mesa.Agent):
                 else: 
                     self.area = 0.9 * self.area # Reference paper. If the netto energy balance is negative -> bacteria does not cover its maintenance -> shrinks 10%
                     self.viability_index += 1
-                self.has_eaten = True
-
-                break   
+                self.has_eaten = True   
     
     def find_free_neighbor(self): # find a neighboring cell to reproduce. If no free position is found, the output is a random neighbor position
         # second output indicates if the input position will be overpopulated after the division
 
-        neighbor_positions = self.model.grid.get_neighborhood(self.pos, moore=self.model.reproduction_spread_moore, include_center=False, radius=self.reproduction_radius)
+        neighbor_positions = self.model.grid.get_neighborhood(self.pos, moore = True, include_center=False, radius=self.reproduction_radius)
         self.model.random.shuffle(neighbor_positions)
 
         for p in neighbor_positions:
@@ -485,7 +487,7 @@ class Type_a_2(mesa.Agent):
         if starting_radius == max_search_radius:
             return True
         
-        increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore=True, include_center = False, radius = starting_radius + 1)
+        increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = starting_radius + 1)
         unchecked_coordinates = list(set(increased_coordinates) - set(checked_coordinates))
 
         for c in unchecked_coordinates:
@@ -499,7 +501,7 @@ class Type_a_2(mesa.Agent):
                 expansion_neighbours_contents = self.model.grid.get_neighbors(c, moore =  True, include_center = True, radius = 1)
                 own_type = [e for e in expansion_neighbours_contents if isinstance(e, Type_a_2)]
 
-                if len(own_type) > 2:
+                if len(own_type) > 0:
 
                     self.model.grid.move_agent(bacteria_to_move, c)
                     return False
@@ -511,8 +513,11 @@ class Type_a_2(mesa.Agent):
         if self.area >= self.split_area:
 
             if self.has_eaten:
+
+                self_contents = self.model.grid.get_cell_list_contents([self.pos])
+                self_contents_bacteria = [s for s in self_contents if not isinstance(s, Soil)]
                 # Wenn bereits mehr als max_num_bacteria_in_cell Bakteriean auf einem Feld sind, oder Zufällig random_spread_chance
-                if len(self.model.grid.get_cell_list_contents([self.pos])) > self.max_num_bacteria_in_cell or self.random.random() < self.random_spread_chance:
+                if len(self_contents_bacteria) >= self.max_num_bacteria_in_cell or self.random.random() < self.random_spread_chance:
                     new_position, overpopulation = self.find_free_neighbor()
                 else:
                     # own position is good for a new cell
@@ -522,11 +527,12 @@ class Type_a_2(mesa.Agent):
                 #If cell is overpopulated move all but one bacteria to a neighbor
                 if overpopulation:
 
-                    reproduction_pos_contents = self.model.grid.get_cell_list_contents(new_position)
-                    reproduction_pos_contents_bacteria = [r for r in reproduction_pos_contents if not isinstance(r, Soil)]
-                    bacteria_to_move = reproduction_pos_contents_bacteria[0]
+                    neighbouring_bacteria = self.model.grid.get_neighbors(self.pos, moore =  True, include_center = True, radius = 1)
+                    own_type_neighbouring_bacteria = [n for n in neighbouring_bacteria if isinstance(n, Type_a_2)]
+                    self.model.random.shuffle(own_type_neighbouring_bacteria)
+                    bacteria_to_move = own_type_neighbouring_bacteria[0]
                     
-                    checked_coordinates = self.model.grid.get_neighborhood(self.pos, moore=True, include_center = True, radius = 1)
+                    checked_coordinates = self.model.grid.get_neighborhood(self.pos, moore = True, include_center = True, radius = 1)
                     overpopulation = self.microcolony_growth(bacteria_to_move, 1, checked_coordinates)
 
                 if not overpopulation:
@@ -543,9 +549,7 @@ class Type_a_2(mesa.Agent):
                 
                 else:
                     self.viability_index += 1
-            # has_eaten reset
-            # if all neighboring positions are occupied, no new cell will be created and has_eaten will be reset anyway 
-            # this was a good was to control the spread, but can be changed if you wish so
+
             self.has_eaten = False
 
     def die(self):
@@ -594,10 +598,10 @@ class Microbiome(mesa.Model):
         # decides after how many turns the random direction of the type_d swarms changes
         # prevents the swarm from going back and forth 
         # done in the model for the whole swarm, so it doesnt spread
-        self.swarm_direction_turns = 10
+        #self.swarm_direction_turns = 10
         # decides if the swarm moves in percentage 0 = 0%, 1 = 100% --> 1 means swarm moves every time
         # done in the model for the whole swarm, so it doesnt spread
-        self.swarm_chance_move = 1
+        # self.swarm_chance_move = 1
         # stops reproduction after population reaches a limit
 
         ##### REMOVED THE UPPER BOUND FOR POPULATIONS
@@ -632,7 +636,7 @@ class Microbiome(mesa.Model):
         #####     self.swarm_direction.append(self.random.choice(self.directions))
         #####     self.swarm_target.append([])
 
-        self.swarm_move = True
+        #self.swarm_move = True
 
         self.grid = mesa.space.MultiGrid(self.grid_width, self.grid_height, is_torus)
         
