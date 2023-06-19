@@ -159,12 +159,8 @@ class Type_a_1(mesa.Agent):
 
         self.age += 1
 
-        # looking for problems, triggers stress
-        self.scout()
-
         # stress reaction
-        if self.is_stressed:
-            self.stress_reaction()
+        self.stress_reaction()
 
         # if bacteria is eaten by another thing, it doesnt do anything (it will be killed by the other party)
         if not self.is_eaten:
@@ -195,11 +191,30 @@ class Type_a_1(mesa.Agent):
 
                 # if inhabitant is on stressed_by list, I get stressed
                 if isinstance(inhabitant, bacteria):
-                    self.is_stressed = True
-                    break
+                    return True
+        return False
+    
+    def stress_reaction(self):
+
+        self.is_stressed = self.scout()
+
+        if self.is_stressed:
+
+            # spread antibiotica in all neighboring cells
+            neighboring_cells = self.model.grid.get_neighborhood(
+                self.pos, moore=True, include_center=True, radius=self.stress_radius
+            )
+
+            # add antibiotica up, maybe this should be limited, as now it is like unlimited
+            for cell in neighboring_cells:
+                soil = self.model.grid.get_cell_list_contents([cell])[0]
+
+                # create or add antibiotica
+                if 'Type_a_2' in soil.antibiotics:
+                    soil.antibiotics['Type_a_2'] += 1
                 else:
-                    self.is_stressed = False
-   
+                    soil.antibiotics['Type_a_2'] = 1 
+
 
     # eat nutrients from soil    
     def eat(self):
@@ -277,7 +292,7 @@ class Type_a_1(mesa.Agent):
                     self.model.grid.move_agent(bacteria_to_move, c)
                     return False
                 
-        return self.microcolony_growth(bacteria_to_move, starting_radius + 1, increased_coordinates)
+        return self.microcolony_growth(bacteria_to_move, starting_radius + 1, increased_coordinates, max_search_radius)
             
     def reproduce(self):
 
@@ -329,26 +344,6 @@ class Type_a_1(mesa.Agent):
                 # die
                 self.model.grid.remove_agent(self)
                 self.model.schedule.remove(self)
-
-
-    # dont know if the antibiotica is a stress reaction or a normal function
-    # i think its easier to change it from this to a normal function, than the other way around
-    def stress_reaction(self):
-
-        # spread antibiotica in all neighboring cells
-        neighboring_cells = self.model.grid.get_neighborhood(
-            self.pos, moore=True, include_center=True, radius=self.stress_radius
-        )
-
-        # add antibiotica up, maybe this should be limited, as now it is like unlimited
-        for cell in neighboring_cells:
-            soil = self.model.grid.get_cell_list_contents([cell])[0]
-
-            # create or add antibiotica
-            if 'Type_a_2' in soil.antibiotics:
-                soil.antibiotics['Type_a_2'] += 1
-            else:
-                soil.antibiotics['Type_a_2'] = 1 
 
 ### PREY
 
@@ -506,7 +501,7 @@ class Type_a_2(mesa.Agent):
                     self.model.grid.move_agent(bacteria_to_move, c)
                     return False
                 
-        return self.microcolony_growth(bacteria_to_move, starting_radius + 1, increased_coordinates)
+        return self.microcolony_growth(bacteria_to_move, starting_radius + 1, increased_coordinates, max_search_radius)
             
     def reproduce(self):
 
