@@ -273,7 +273,7 @@ class Type_a_1(mesa.Agent):
         if starting_radius > max_search_radius:
             return True
         
-        increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = starting_radius + 1)
+        increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = starting_radius + 5)
         unchecked_coordinates = list(set(increased_coordinates) - set(checked_coordinates))
 
         for c in unchecked_coordinates:
@@ -292,7 +292,7 @@ class Type_a_1(mesa.Agent):
                     self.model.grid.move_agent(bacteria_to_move, c)
                     return False
                 
-        return self.microcolony_growth(bacteria_to_move, starting_radius + 1, increased_coordinates, max_search_radius)
+        return self.microcolony_growth(bacteria_to_move, starting_radius + 5, increased_coordinates, max_search_radius)
             
     def reproduce(self):
 
@@ -476,19 +476,37 @@ class Type_a_2(mesa.Agent):
         
         return [p, True]
 
+        # How do we make this process faster?
+
+        # 1. Different scenario when max number of bacteria is achieved
+            # Max number is not what we expect for some reason, so may be should not rely on it
+            # Would it even bring us anyway?
+
+        # 2. Starting radius not 1, and increments also not 1
+            # Less iterations, but they will take more time
+            # Might give us some advantage, but do not expect it to be huge
+
+        # 3. If second method shows some acceleration -> once theoretical max number of bacteria is reached scan the whole grid once
+
+        # 4. Work directly with agents and not coordinates
+            # Get all the agents in the neighborhood
+            # Remove Soil agents
+            # Get the coordinates of the bacteria agents
+            # Count how many times each coordinate repeats
+            # If less then max_num_bacteria_in_cell check the own type
     
     def microcolony_growth(self, bacteria_to_move, starting_radius, checked_coordinates, max_search_radius):
        
         if starting_radius > max_search_radius:
             return True
         
-        # total_bacteria_number = self.model.datacollector.get_model_vars_dataframe()['Type_a_1'].iloc[-1] + self.model.datacollector.get_model_vars_dataframe()['Type_a_2'].iloc[-1]
+        #total_bacteria_number = self.model.datacollector.get_model_vars_dataframe()['Type_a_1'].iloc[-1] + self.model.datacollector.get_model_vars_dataframe()['Type_a_2'].iloc[-1]
 
-        # if total_bacteria_number >= self.model.grid_width * self.model.grid_height * self.max_num_bacteria_in_cell:
+        #if total_bacteria_number >= self.model.grid_width * self.model.grid_height * self.max_num_bacteria_in_cell:
 
-        #     all_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = max_search_radius)
+         #   all_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = max_search_radius)
         
-        increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = starting_radius + 1)
+        increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = starting_radius + 5)
         unchecked_coordinates = list(set(increased_coordinates) - set(checked_coordinates))
 
         for c in unchecked_coordinates:
@@ -507,7 +525,7 @@ class Type_a_2(mesa.Agent):
                     self.model.grid.move_agent(bacteria_to_move, c)
                     return False
                 
-        return self.microcolony_growth(bacteria_to_move, starting_radius + 1, increased_coordinates, max_search_radius)
+        return self.microcolony_growth(bacteria_to_move, starting_radius + 5, increased_coordinates, max_search_radius)
             
     def reproduce(self):
 
