@@ -90,7 +90,7 @@ def avoid_identical_clones(mean_value, variation_coefficient = 0.1, num_samples 
 s_mutens_radius = 0.75 # micrometers
 average_bacteria_area = 4 * math.pi * s_mutens_radius**2 # micrometers square, using sphere area formula, if we multiply by the 10^6 factor its 
 viability_time = 50 # how many times can a bacteria have negative netto_energy and shrink
-agressiveness = 0.01
+aggressiveness = 0.015
 
 ### PREDATOR
 
@@ -273,26 +273,52 @@ class Type_a_1(mesa.Agent):
         if starting_radius > max_search_radius:
             return True
         
-        increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = starting_radius + 5)
-        unchecked_coordinates = list(set(increased_coordinates) - set(checked_coordinates))
+        total_bacteria_number = self.model.datacollector.get_model_vars_dataframe()['Type_a_1'].iloc[-1] + self.model.datacollector.get_model_vars_dataframe()['Type_a_2'].iloc[-1]
 
-        for c in unchecked_coordinates:
+        if total_bacteria_number < self.model.grid_width * self.model.grid_height * self.max_num_bacteria_in_cell:
 
-            pos_contents = self.model.grid.get_cell_list_contents(c)
-            pos_contents_bacteria = [p for p in pos_contents if not isinstance(p, Soil)]
-            num_bacteria = len(pos_contents_bacteria)
+            increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = starting_radius + 5)
+            unchecked_coordinates = list(set(increased_coordinates) - set(checked_coordinates))
 
-            if num_bacteria < self.max_num_bacteria_in_cell:
-                
-                expansion_neighbours_contents = self.model.grid.get_neighbors(c, moore =  True, include_center = True, radius = 1)
-                own_type = [e for e in expansion_neighbours_contents if isinstance(e, Type_a_1)]
+            for c in unchecked_coordinates:
 
-                if len(own_type) > 0:
+                pos_contents = self.model.grid.get_cell_list_contents(c)
+                pos_contents_bacteria = [p for p in pos_contents if not isinstance(p, Soil)]
+                num_bacteria = len(pos_contents_bacteria)
 
-                    self.model.grid.move_agent(bacteria_to_move, c)
-                    return False
-                
-        return self.microcolony_growth(bacteria_to_move, starting_radius + 5, increased_coordinates, max_search_radius)
+                if num_bacteria < self.max_num_bacteria_in_cell:
+                    
+                    expansion_neighbours_contents = self.model.grid.get_neighbors(c, moore =  True, include_center = True, radius = 1)
+                    own_type = [e for e in expansion_neighbours_contents if isinstance(e, Type_a_1)]
+
+                    if len(own_type) > 0:
+
+                        self.model.grid.move_agent(bacteria_to_move, c)
+                        return False
+                    
+            return self.microcolony_growth(bacteria_to_move, starting_radius + 5, increased_coordinates, max_search_radius)
+        
+        else:
+
+            all_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = False, radius = max_search_radius)
+            
+            for a in all_coordinates:
+
+                pos_contents = self.model.grid.get_cell_list_contents(a)
+                pos_contents_bacteria = [p for p in pos_contents if not isinstance(p, Soil)]
+                num_bacteria = len(pos_contents_bacteria)
+
+                if num_bacteria < self.max_num_bacteria_in_cell:
+                    
+                    expansion_neighbours_contents = self.model.grid.get_neighbors(a, moore =  True, include_center = True, radius = 1)
+                    own_type = [e for e in expansion_neighbours_contents if isinstance(e, Type_a_1)]
+
+                    if len(own_type) > 0:
+
+                        self.model.grid.move_agent(bacteria_to_move, a)
+                        return False
+            
+            return True
             
     def reproduce(self):
 
@@ -349,7 +375,7 @@ class Type_a_1(mesa.Agent):
 
 class Type_a_2(mesa.Agent):
 
-    def __init__(self, unique_id, model, pos, area, viability_time, immediate_killing, agressiveness):
+    def __init__(self, unique_id, model, pos, area, viability_time, immediate_killing, aggressiveness):
         super().__init__(unique_id, model)
 
         ##### Ilya Additions:
@@ -372,7 +398,7 @@ class Type_a_2(mesa.Agent):
         self.dying_chance = np.random.uniform(0.001, 0.01) # Each bacterium has a probability between 0.1 and 1% to die
 
         self.immediate_killing = immediate_killing # Default False
-        self.agressiveness = avoid_identical_clones(agressiveness)# If immediate_killing = T its probability of the immediate kill, else percentage of energy decreased from the netto_energy of bacteria
+        self.aggressiveness  = avoid_identical_clones(aggressiveness)# If immediate_killing = T its probability of the immediate kill, else percentage of energy decreased from the netto_energy of bacteria
 
         ################################
         ### CUSTOMIZABLE VARIABLES
@@ -447,7 +473,7 @@ class Type_a_2(mesa.Agent):
         
                 for antibiotic in self.antibiotics_list:
                     if antibiotic in soil.antibiotics and soil.antibiotics[antibiotic] > 0 and self.immediate_killing == False:
-                        self.energy_netto -= self.energy_netto * self.agressiveness
+                        self.energy_netto -= self.energy_netto * self.aggressiveness 
                         self.viability_index += 1
                         soil.antibiotics[antibiotic] -= 1
 
@@ -500,32 +526,52 @@ class Type_a_2(mesa.Agent):
         if starting_radius > max_search_radius:
             return True
         
-        #total_bacteria_number = self.model.datacollector.get_model_vars_dataframe()['Type_a_1'].iloc[-1] + self.model.datacollector.get_model_vars_dataframe()['Type_a_2'].iloc[-1]
+        total_bacteria_number = self.model.datacollector.get_model_vars_dataframe()['Type_a_1'].iloc[-1] + self.model.datacollector.get_model_vars_dataframe()['Type_a_2'].iloc[-1]
 
-        #if total_bacteria_number >= self.model.grid_width * self.model.grid_height * self.max_num_bacteria_in_cell:
+        if total_bacteria_number < self.model.grid_width * self.model.grid_height * self.max_num_bacteria_in_cell:
 
-         #   all_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = max_search_radius)
+            increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = starting_radius + 5)
+            unchecked_coordinates = list(set(increased_coordinates) - set(checked_coordinates))
+
+            for c in unchecked_coordinates:
+
+                pos_contents = self.model.grid.get_cell_list_contents(c)
+                pos_contents_bacteria = [p for p in pos_contents if not isinstance(p, Soil)]
+                num_bacteria = len(pos_contents_bacteria)
+
+                if num_bacteria < self.max_num_bacteria_in_cell:
+                    
+                    expansion_neighbours_contents = self.model.grid.get_neighbors(c, moore =  True, include_center = True, radius = 1)
+                    own_type = [e for e in expansion_neighbours_contents if isinstance(e, Type_a_2)]
+
+                    if len(own_type) > 0:
+
+                        self.model.grid.move_agent(bacteria_to_move, c)
+                        return False
+                    
+            return self.microcolony_growth(bacteria_to_move, starting_radius + 5, increased_coordinates, max_search_radius)
         
-        increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = starting_radius + 5)
-        unchecked_coordinates = list(set(increased_coordinates) - set(checked_coordinates))
+        else:
 
-        for c in unchecked_coordinates:
+            all_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = False, radius = max_search_radius)
+            
+            for a in all_coordinates:
 
-            pos_contents = self.model.grid.get_cell_list_contents(c)
-            pos_contents_bacteria = [p for p in pos_contents if not isinstance(p, Soil)]
-            num_bacteria = len(pos_contents_bacteria)
+                pos_contents = self.model.grid.get_cell_list_contents(a)
+                pos_contents_bacteria = [p for p in pos_contents if not isinstance(p, Soil)]
+                num_bacteria = len(pos_contents_bacteria)
 
-            if num_bacteria < self.max_num_bacteria_in_cell:
-                
-                expansion_neighbours_contents = self.model.grid.get_neighbors(c, moore =  True, include_center = True, radius = 1)
-                own_type = [e for e in expansion_neighbours_contents if isinstance(e, Type_a_2)]
+                if num_bacteria < self.max_num_bacteria_in_cell:
+                    
+                    expansion_neighbours_contents = self.model.grid.get_neighbors(a, moore =  True, include_center = True, radius = 1)
+                    own_type = [e for e in expansion_neighbours_contents if isinstance(e, Type_a_2)]
 
-                if len(own_type) > 0:
+                    if len(own_type) > 0:
 
-                    self.model.grid.move_agent(bacteria_to_move, c)
-                    return False
-                
-        return self.microcolony_growth(bacteria_to_move, starting_radius + 5, increased_coordinates, max_search_radius)
+                        self.model.grid.move_agent(bacteria_to_move, a)
+                        return False
+            
+            return True
             
     def reproduce(self):
 
@@ -562,7 +608,7 @@ class Type_a_2(mesa.Agent):
                     self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
 
                     # creating and placing new bacteria
-                    new_bacteria = Type_a_2(self.model.next_id(), self.model, new_position, self.area * 0.5, viability_time, self.immediate_killing, agressiveness)
+                    new_bacteria = Type_a_2(self.model.next_id(), self.model, new_position, self.area * 0.5, viability_time, self.immediate_killing, aggressiveness)
                     self.model.grid.place_agent(new_bacteria, new_position)
                     self.model.schedule.add(new_bacteria)
                 
@@ -573,7 +619,7 @@ class Type_a_2(mesa.Agent):
 
     def die(self):
 
-             if (self.immediate_killing == True) and (self.random.random() < self.agressiveness):
+             if (self.immediate_killing == True) and (self.random.random() < self.aggressiveness):
                     
                     soil = self.model.grid.get_cell_list_contents([self.pos])[0]
                     for antibiotic in self.antibiotics_list:
@@ -605,7 +651,7 @@ class Microbiome(mesa.Model):
     # EVERYTHING WITH FIVE HASHTAGS IS RELATED TO INITIAL MESA SCAFFOLD AND COULD BE USEFULL IN THE FUTURE
 
     def __init__(self, num_type_a_1, num_type_a_2 ,is_torus, grid_height, grid_width, # Compulsory inputs for the simulation
-                 avrg_area_type_a = average_bacteria_area, avrg_viability_time_type_a = viability_time, immediate_killing = False, agressiveness = agressiveness): # Variables that have a default value but can be changed
+                 avrg_area_type_a = average_bacteria_area, avrg_viability_time_type_a = viability_time, immediate_killing = False, aggressiveness = aggressiveness): # Variables that have a default value but can be changed
 
         ################################
         ### CUSTOMIZABLE VARIABLES
@@ -683,7 +729,7 @@ class Microbiome(mesa.Model):
         for i in range(num_type_a_2):
             x = self.random.randrange(self.grid.width)
             y = self.random.randrange(self.grid.height)
-            a = Type_a_2(self.next_id(), self, (x, y), avrg_area_type_a, avrg_viability_time_type_a, immediate_killing, agressiveness)
+            a = Type_a_2(self.next_id(), self, (x, y), avrg_area_type_a, avrg_viability_time_type_a, immediate_killing, aggressiveness)
             self.schedule.add(a)
             # Add the agent to a random grid cell
             self.grid.place_agent(a, (x, y))
