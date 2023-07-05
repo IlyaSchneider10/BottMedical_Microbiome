@@ -15,22 +15,22 @@ class Soil(mesa.Agent):
         ### CUSTOMIZABLE VARIABLES
         ################################
         # amount of turns between refuels of nutrients
-        self.refuel_timer = 60
+        self.refuel_timer = np.float16(60)
         # amount of nutrients to refuel
-        self.refuel_amount = 5000
+        self.refuel_amount = np.float16(5000)
         ################################
         ################################
         ################################
 
-        self.age = 0
+        self.age = np.float16(0)
         self.pos = pos
         # temperature doesnt do anything
-        self.temperature = 5
+        self.temperature = np.float16(5)
         # not that important due to the refuel sources
         self.nutrients = {
-            "Type_a_food":5000,
-            "Type_b_food":5000,
-            "Type_c_food":5000
+            "Type_a_food": np.float16(5000),
+            "Type_b_food":np.float16(5000),
+            "Type_c_food":np.float16(5000)
 
         } 
 
@@ -73,7 +73,7 @@ def get_average_pos(lst):
 
 ##### INTRODUCES VARIABILITY INTO BACTERIAL POPULATION
 
-def avoid_identical_clones(mean_value, variation_coefficient = 0.1, num_samples = 1):
+def avoid_identical_clones(mean_value, variation_coefficient = np.float16(0.1), num_samples = 1):
 
     values = np.random.normal(mean_value, variation_coefficient * mean_value, num_samples)
 
@@ -85,12 +85,12 @@ def avoid_identical_clones(mean_value, variation_coefficient = 0.1, num_samples 
         values[negative_indices] = new_values
         negative_indices = np.where(values < 0)[0]
 
-    return values
+    return np.float16(values)
 
-s_mutens_radius = 0.75 # micrometers
-average_bacteria_area = 4 * math.pi * s_mutens_radius**2 # micrometers square, using sphere area formula, if we multiply by the 10^6 factor its 
-viability_time = 50 # how many times can a bacteria have negative netto_energy and shrink
-aggressiveness = 0.015
+s_mutens_radius = np.float16(0.75) # micrometers
+average_bacteria_area = np.float16(4 * math.pi * s_mutens_radius**2) # micrometers square, using sphere area formula, if we multiply by the 10^6 factor its 
+viability_time = np.float16(50) # how many times can a bacteria have negative netto_energy and shrink
+aggressiveness = np.float16(0.02)
 
 ### PREDATOR
 
@@ -101,22 +101,22 @@ class Type_a_1(mesa.Agent):
 
         ##### Ilya Additions:
         self.area = avoid_identical_clones(area)
-        self.split_area = avoid_identical_clones(average_bacteria_area * 1.3) #Reference paper + ChatGPT
-        self.min_area = average_bacteria_area * 0.3 #Reference paper. I assume that the bacteria dies if its area is bellow the minimal area -> wrong assumption    
+        self.split_area = avoid_identical_clones(average_bacteria_area * np.float16(1.3)) #Reference paper + ChatGPT
+        self.min_area = average_bacteria_area * np.float16(0.3) #Reference paper. I assume that the bacteria dies if its area is bellow the minimal area -> wrong assumption    
 
         self.avaliability = 0.2 # Reference paper. Local avaliability of nutrients in a spatial cell for each bacterium
-        self.nutrient_uptake_ratio = avoid_identical_clones(0.3) # Reference paper
-        self.max_possible_consumption = 0
-        self.energy_yield = 0.65 # Reference paper has 0.15, does not work in our case because then the produced_energy < survival_energy
-        self.maintenance = 0.1 # Reference paper. Units of energy that a unit of area requieres per each time step
+        self.nutrient_uptake_ratio = avoid_identical_clones(np.float16(0.3)) # Reference paper
+        self.max_possible_consumption = np.float16(0)
+        self.energy_yield = np.float16(0.65) # Reference paper has 0.15, does not work in our case because then the produced_energy < survival_energy
+        self.maintenance = np.float16(0.1) # Reference paper. Units of energy that a unit of area requieres per each time step
        
-        self.produced_energy = 0
-        self.survival_energy = 0
-        self.energy_netto = 0 # Netto energy produced by bacteria during eating. If positive -> bacterium acquires area, if negative -> shrinks
+        self.produced_energy = np.float16(0)
+        self.survival_energy = np.float16(0)
+        self.energy_netto = np.float16(0) # Netto energy produced by bacteria during eating. If positive -> bacterium acquires area, if negative -> shrinks
 
-        self.max_viability_time = np.round(avoid_identical_clones(viability_time)) # maximum amount of times a bacteria can have a negative_netto energy
-        self.viability_index = 0 # the viability index of the bacteria, if it becomes > than self.max_viability_time the bacteria dies or when bacteria has no space to reproduce
-        self.dying_chance = np.random.uniform(0.001, 0.01) # Each bacterium has a probability between 0.1 and 1% to die
+        self.max_viability_time = np.float16(np.round(avoid_identical_clones(viability_time))) # maximum amount of times a bacteria can have a negative_netto energy
+        self.viability_index = np.float16(0) # the viability index of the bacteria, if it becomes > than self.max_viability_time the bacteria dies or when bacteria has no space to reproduce
+        self.dying_chance = np.float16(np.random.uniform(np.float16(0.001), np.float16(0.01))) # Each bacterium has a probability between 0.1 and 1% to die
 
         ################################
         ### CUSTOMIZABLE VARIABLES
@@ -131,7 +131,7 @@ class Type_a_1(mesa.Agent):
         # if no cell with less than self.max_num_bacteria_in_cell is found, reproduction will not take place
         self.reproduction_radius = 1
         # chance to spread when self.max_num_bacteria_in_cell is not reached, to fasten the spread
-        self.random_spread_chance = 0.5
+        self.random_spread_chance = np.float16(0.5)
         # scouting is done in a moore radius, scouting for stressed_by
         self.scouting_radius = 1
         # when a object of this type is found in the scouting radius, I get stressed
@@ -243,10 +243,10 @@ class Type_a_1(mesa.Agent):
                 
 
                 if self.energy_netto >= 0:
-                    self.area += self.energy_netto * 0.5 # Reference paper. If there is some avalaible energy, bacterium will convert half of it into area
+                    self.area += self.energy_netto * np.float16(0.5) # Reference paper. If there is some avalaible energy, bacterium will convert half of it into area
                 else: 
-                    self.area = 0.9 * self.area # Reference paper. If the netto energy balance is negative -> bacteria does not cover its maintenance -> shrinks 10%
-                    self.viability_index += 1
+                    self.area = np.float16(0.9) * self.area # Reference paper. If the netto energy balance is negative -> bacteria does not cover its maintenance -> shrinks 10%
+                    self.viability_index += np.float16(1)
                 self.has_eaten = True
 
                 
@@ -272,53 +272,27 @@ class Type_a_1(mesa.Agent):
        
         if starting_radius > max_search_radius:
             return True
-        
-        total_bacteria_number = self.model.datacollector.get_model_vars_dataframe()['Type_a_1'].iloc[-1] + self.model.datacollector.get_model_vars_dataframe()['Type_a_2'].iloc[-1]
 
-        if total_bacteria_number < self.model.grid_width * self.model.grid_height * self.max_num_bacteria_in_cell:
+        increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = starting_radius + 5)
+        unchecked_coordinates = list(set(increased_coordinates) - set(checked_coordinates))
 
-            increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = starting_radius + 5)
-            unchecked_coordinates = list(set(increased_coordinates) - set(checked_coordinates))
+        for c in unchecked_coordinates:
 
-            for c in unchecked_coordinates:
+            pos_contents = self.model.grid.get_cell_list_contents(c)
+            pos_contents_bacteria = [p for p in pos_contents if not isinstance(p, Soil)]
+            num_bacteria = len(pos_contents_bacteria)
 
-                pos_contents = self.model.grid.get_cell_list_contents(c)
-                pos_contents_bacteria = [p for p in pos_contents if not isinstance(p, Soil)]
-                num_bacteria = len(pos_contents_bacteria)
+            if num_bacteria < self.max_num_bacteria_in_cell:
+                
+                expansion_neighbours_contents = self.model.grid.get_neighbors(c, moore =  True, include_center = True, radius = 1)
+                own_type = [e for e in expansion_neighbours_contents if isinstance(e, Type_a_1)]
 
-                if num_bacteria < self.max_num_bacteria_in_cell:
-                    
-                    expansion_neighbours_contents = self.model.grid.get_neighbors(c, moore =  True, include_center = True, radius = 1)
-                    own_type = [e for e in expansion_neighbours_contents if isinstance(e, Type_a_1)]
+                if len(own_type) > 0:
 
-                    if len(own_type) > 0:
-
-                        self.model.grid.move_agent(bacteria_to_move, c)
-                        return False
-                    
-            return self.microcolony_growth(bacteria_to_move, starting_radius + 5, increased_coordinates, max_search_radius)
-        
-        else:
-
-            all_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = False, radius = max_search_radius)
-            
-            for a in all_coordinates:
-
-                pos_contents = self.model.grid.get_cell_list_contents(a)
-                pos_contents_bacteria = [p for p in pos_contents if not isinstance(p, Soil)]
-                num_bacteria = len(pos_contents_bacteria)
-
-                if num_bacteria < self.max_num_bacteria_in_cell:
-                    
-                    expansion_neighbours_contents = self.model.grid.get_neighbors(a, moore =  True, include_center = True, radius = 1)
-                    own_type = [e for e in expansion_neighbours_contents if isinstance(e, Type_a_1)]
-
-                    if len(own_type) > 0:
-
-                        self.model.grid.move_agent(bacteria_to_move, a)
-                        return False
-            
-            return True
+                    self.model.grid.move_agent(bacteria_to_move, c)
+                    return False
+                
+        return self.microcolony_growth(bacteria_to_move, starting_radius + 5, increased_coordinates, max_search_radius)
             
     def reproduce(self):
 
@@ -351,11 +325,11 @@ class Type_a_1(mesa.Agent):
 
                     # Reproduces in the new position
                     # Updating the mother bacteria
-                    self.area = self.area * 0.5
+                    self.area = self.area * np.float16(0.5)
                     self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
 
                     # creating and placing new bacteria
-                    new_bacteria = Type_a_1(self.model.next_id(), self.model, new_position, self.area * 0.5, viability_time)
+                    new_bacteria = Type_a_1(self.model.next_id(), self.model, new_position, self.area * np.float16(0.5), viability_time)
                     self.model.grid.place_agent(new_bacteria, new_position)
                     self.model.schedule.add(new_bacteria)
                 
@@ -380,22 +354,22 @@ class Type_a_2(mesa.Agent):
 
         ##### Ilya Additions:
         self.area = avoid_identical_clones(area)
-        self.split_area = avoid_identical_clones(average_bacteria_area * 1.3) #Reference paper + ChatGPT
-        self.min_area = average_bacteria_area * 0.3 #Reference paper. I assume that the bacteria dies if its area is bellow the minimal area -> wrong assumption    
+        self.split_area = avoid_identical_clones(average_bacteria_area * np.float16(1.3)) #Reference paper + ChatGPT
+        self.min_area = average_bacteria_area * np.float16(0.3) #Reference paper. I assume that the bacteria dies if its area is bellow the minimal area -> wrong assumption    
 
         self.avaliability = 0.2 # Reference paper. Local avaliability of nutrients in a spatial cell for each bacterium
-        self.nutrient_uptake_ratio = avoid_identical_clones(0.3) # Reference paper
-        self.max_possible_consumption = 0
-        self.energy_yield = 0.65 # Reference paper has 0.15, does not work in our case because then the produced_energy < survival_energy
-        self.maintenance = 0.1 # Reference paper. Units of energy that a unit of area requieres per each time step
+        self.nutrient_uptake_ratio = avoid_identical_clones(np.float16(0.3)) # Reference paper
+        self.max_possible_consumption = np.float16(0)
+        self.energy_yield = np.float16(0.65) # Reference paper has 0.15, does not work in our case because then the produced_energy < survival_energy
+        self.maintenance = np.float16(0.1) # Reference paper. Units of energy that a unit of area requieres per each time step
        
-        self.produced_energy = 0
-        self.survival_energy = 0
-        self.energy_netto = 0 # Netto energy produced by bacteria during eating. If positive -> bacterium acquires area, if negative -> shrinks
+        self.produced_energy = np.float16(0)
+        self.survival_energy = np.float16(0)
+        self.energy_netto = np.float16(0) # Netto energy produced by bacteria during eating. If positive -> bacterium acquires area, if negative -> shrinks
 
-        self.max_viability_time = np.round(avoid_identical_clones(viability_time)) # maximum amount of times a bacteria can have a negative_netto energy
-        self.viability_index = 0 # the viability index of the bacteria, if it becomes > than self.max_viability_time the bacteria dies or when bacteria has no space to reproduce
-        self.dying_chance = np.random.uniform(0.001, 0.01) # Each bacterium has a probability between 0.1 and 1% to die
+        self.max_viability_time = np.float16(np.round(avoid_identical_clones(viability_time))) # maximum amount of times a bacteria can have a negative_netto energy
+        self.viability_index = np.float16(0) # the viability index of the bacteria, if it becomes > than self.max_viability_time the bacteria dies or when bacteria has no space to reproduce
+        self.dying_chance = np.float16(np.random.uniform(np.float16(0.001), np.float16(0.01))) # Each bacterium has a probability between 0.1 and 1% to die
 
         self.immediate_killing = immediate_killing # Default False
         self.aggressiveness  = avoid_identical_clones(aggressiveness)# If immediate_killing = T its probability of the immediate kill, else percentage of energy decreased from the netto_energy of bacteria
@@ -413,7 +387,7 @@ class Type_a_2(mesa.Agent):
         # if no cell with less than self.max_num_bacteria_in_cell is found, reproduction will not take place
         self.reproduction_radius = 1
         # chance to spread when self.max_num_bacteria_in_cell is not reached, to fasten the spread
-        self.random_spread_chance = 0.5
+        self.random_spread_chance = np.float16(0.5)
         # if True it wont spread on fields containing antibiotics against it
         # False creates a bacteria free zone between type_a_1 and type_a_2
         ##### self.spread_in_antibiotics = True ##### Used to be False
@@ -479,10 +453,10 @@ class Type_a_2(mesa.Agent):
 
 
                 if self.energy_netto >= 0:
-                    self.area += self.energy_netto * 0.5 # Reference paper. If there is some avalaible energy, bacterium will convert half of it into area
+                    self.area += self.energy_netto * np.float16(0.5) # Reference paper. If there is some avalaible energy, bacterium will convert half of it into area
                 else: 
-                    self.area = 0.9 * self.area # Reference paper. If the netto energy balance is negative -> bacteria does not cover its maintenance -> shrinks 10%
-                    self.viability_index += 1
+                    self.area = np.float16(0.9) * self.area # Reference paper. If the netto energy balance is negative -> bacteria does not cover its maintenance -> shrinks 10%
+                    self.viability_index += np.float16(1)
                 self.has_eaten = True   
     
     def find_free_neighbor(self): # find a neighboring cell to reproduce. If no free position is found, the output is a random neighbor position
@@ -525,53 +499,27 @@ class Type_a_2(mesa.Agent):
        
         if starting_radius > max_search_radius:
             return True
-        
-        total_bacteria_number = self.model.datacollector.get_model_vars_dataframe()['Type_a_1'].iloc[-1] + self.model.datacollector.get_model_vars_dataframe()['Type_a_2'].iloc[-1]
 
-        if total_bacteria_number < self.model.grid_width * self.model.grid_height * self.max_num_bacteria_in_cell:
+        increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = starting_radius + 5)
+        unchecked_coordinates = list(set(increased_coordinates) - set(checked_coordinates))
 
-            increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = starting_radius + 5)
-            unchecked_coordinates = list(set(increased_coordinates) - set(checked_coordinates))
+        for c in unchecked_coordinates:
 
-            for c in unchecked_coordinates:
+            pos_contents = self.model.grid.get_cell_list_contents(c)
+            pos_contents_bacteria = [p for p in pos_contents if not isinstance(p, Soil)]
+            num_bacteria = len(pos_contents_bacteria)
 
-                pos_contents = self.model.grid.get_cell_list_contents(c)
-                pos_contents_bacteria = [p for p in pos_contents if not isinstance(p, Soil)]
-                num_bacteria = len(pos_contents_bacteria)
+            if num_bacteria < self.max_num_bacteria_in_cell:
+                
+                expansion_neighbours_contents = self.model.grid.get_neighbors(c, moore =  True, include_center = True, radius = 1)
+                own_type = [e for e in expansion_neighbours_contents if isinstance(e, Type_a_1)]
 
-                if num_bacteria < self.max_num_bacteria_in_cell:
-                    
-                    expansion_neighbours_contents = self.model.grid.get_neighbors(c, moore =  True, include_center = True, radius = 1)
-                    own_type = [e for e in expansion_neighbours_contents if isinstance(e, Type_a_2)]
+                if len(own_type) > 0:
 
-                    if len(own_type) > 0:
-
-                        self.model.grid.move_agent(bacteria_to_move, c)
-                        return False
-                    
-            return self.microcolony_growth(bacteria_to_move, starting_radius + 5, increased_coordinates, max_search_radius)
-        
-        else:
-
-            all_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = False, radius = max_search_radius)
-            
-            for a in all_coordinates:
-
-                pos_contents = self.model.grid.get_cell_list_contents(a)
-                pos_contents_bacteria = [p for p in pos_contents if not isinstance(p, Soil)]
-                num_bacteria = len(pos_contents_bacteria)
-
-                if num_bacteria < self.max_num_bacteria_in_cell:
-                    
-                    expansion_neighbours_contents = self.model.grid.get_neighbors(a, moore =  True, include_center = True, radius = 1)
-                    own_type = [e for e in expansion_neighbours_contents if isinstance(e, Type_a_2)]
-
-                    if len(own_type) > 0:
-
-                        self.model.grid.move_agent(bacteria_to_move, a)
-                        return False
-            
-            return True
+                    self.model.grid.move_agent(bacteria_to_move, c)
+                    return False
+                
+        return self.microcolony_growth(bacteria_to_move, starting_radius + 5, increased_coordinates, max_search_radius)
             
     def reproduce(self):
 
@@ -604,7 +552,7 @@ class Type_a_2(mesa.Agent):
 
                     # Reproduces in the new position
                     # Updating the mother bacteria
-                    self.area = self.area * 0.5
+                    self.area = self.area * np.float16(0.5)
                     self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
 
                     # creating and placing new bacteria
@@ -613,7 +561,7 @@ class Type_a_2(mesa.Agent):
                     self.model.schedule.add(new_bacteria)
                 
                 else:
-                    self.viability_index += 1
+                    self.viability_index += np.float16(1)
 
             self.has_eaten = False
 
