@@ -272,6 +272,8 @@ class Type_a_1(mesa.Agent):
        
         if starting_radius > max_search_radius:
             return True
+        
+        increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = starting_radius + 1)
 
         increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = starting_radius + 1)
         unchecked_coordinates = list(set(increased_coordinates) - set(checked_coordinates))
@@ -292,6 +294,7 @@ class Type_a_1(mesa.Agent):
                     self.model.grid.move_agent(bacteria_to_move, c)
                     return False
                 
+        return self.microcolony_growth(bacteria_to_move, starting_radius + 1, increased_coordinates, max_search_radius)
         return self.microcolony_growth(bacteria_to_move, starting_radius + 1, increased_coordinates, max_search_radius)
             
     def reproduce(self):
@@ -481,8 +484,6 @@ class Type_a_2(mesa.Agent):
        
         if starting_radius > max_search_radius:
             return True
-
-        increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = starting_radius + 5)
         
         # total_bacteria_number = self.model.datacollector.get_model_vars_dataframe()['Type_a_1'].iloc[-1] + self.model.datacollector.get_model_vars_dataframe()['Type_a_2'].iloc[-1]
 
