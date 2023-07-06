@@ -50,10 +50,14 @@ model_params = {
     ##### ),
     "STATIC_TEXT2": mesa.visualization.StaticText('<br><h4>Type A 1 and Type A 2</h4> Typ A 1 can in proximity to Typ A 2 secrete antibiotica against it.'),
     "num_type_a_1": mesa.visualization.Slider(
+<<<<<<< HEAD
         "Type A 1 strating population", 4, 0, 100, description="Randomly distributed"
+=======
+        "Type A 1 strating population", 2, 0, 100, description="Randomly distributed"
+>>>>>>> parent of fd9d23d (Faster simulation and steady state)
     ),
     "num_type_a_2": mesa.visualization.Slider(
-        "Type A 2 strating population", 30, 0, 100, description="Randomly distributed"
+        "Type A 2 strating population", 20, 0, 100, description="Randomly distributed"
     ),
     "STATIC_TEXT3": mesa.visualization.StaticText('<br><h4>Immediate killing</h4> If True the predator kills the pray immediately with a set up agressiveness. If False reduces netto energy of bacteria by a set up agressiveness.'),
     "immediate_killing": mesa.visualization.Checkbox(
