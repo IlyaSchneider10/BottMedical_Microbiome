@@ -106,13 +106,8 @@ class Type_a_1(mesa.Agent):
 
         self.avaliability = 0.2 # Reference paper. Local avaliability of nutrients in a spatial cell for each bacterium
         self.nutrient_uptake_ratio = avoid_identical_clones(0.3) # Reference paper
-        self.max_possible_consumption = 0
         self.energy_yield = 0.65 # Reference paper has 0.15, does not work in our case because then the produced_energy < survival_energy
         self.maintenance = 0.1 # Reference paper. Units of energy that a unit of area requieres per each time step
-       
-        self.produced_energy = 0
-        self.survival_energy = 0
-        self.energy_netto = 0 # Netto energy produced by bacteria during eating. If positive -> bacterium acquires area, if negative -> shrinks
 
         self.max_viability_time = np.round(avoid_identical_clones(viability_time)) # maximum amount of times a bacteria can have a negative_netto energy
         self.viability_index = 0 # the viability index of the bacteria, if it becomes > than self.max_viability_time the bacteria dies or when bacteria has no space to reproduce
@@ -146,7 +141,6 @@ class Type_a_1(mesa.Agent):
 
         self.pos = pos
         self.age = 0
-        self.has_eaten = False
         self.is_stressed = False
         
         
@@ -226,28 +220,20 @@ class Type_a_1(mesa.Agent):
             # look if consumable nutrients in soil
             if nutrient in soil.nutrients and soil.nutrients[nutrient] > 0:
 
-                self.max_possible_consumption = self.avaliability * soil.nutrients[nutrient] # the biggest amount each bacterium can consume
-                self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
-                if self.max_possible_consumption >= self.max_individual_uptake:
-                    actual_consumption = self.max_individual_uptake # make sure that bacteria does not consume more nutrients than its individual consumption upper bounf
+                if self.avaliability * soil.nutrients[nutrient] >= self.area * self.nutrient_uptake_ratio:
+                    actual_consumption = self.area * self.nutrient_uptake_ratio # make sure that bacteria does not consume more nutrients than its individual consumption upper bounf
                 else: 
-                    actual_consumption = self.max_possible_consumption
+                    actual_consumption = self.avaliability * soil.nutrients[nutrient]
 
-                # subract nutrient and set has_eaten
                 soil.nutrients[nutrient] -= actual_consumption
 
+                self.energy_netto = self.energy_yield * actual_consumption  - self.maintenance * self.area
                 
-                self.produced_energy = self.energy_yield * actual_consumption # convert the consumed nutrients into energy
-                self.survival_energy = self.maintenance * self.area # the energy that bacteria needs to survive
-                self.energy_netto = self.produced_energy  - self.survival_energy
-                
-
                 if self.energy_netto >= 0:
                     self.area += self.energy_netto * 0.5 # Reference paper. If there is some avalaible energy, bacterium will convert half of it into area
                 else: 
                     self.area = 0.9 * self.area # Reference paper. If the netto energy balance is negative -> bacteria does not cover its maintenance -> shrinks 10%
                     self.viability_index += 1
-                self.has_eaten = True
 
                 
     def find_free_neighbor(self): # find a neighboring cell to reproduce. If no free position is found, the output is a random neighbor position
@@ -259,8 +245,7 @@ class Type_a_1(mesa.Agent):
 
         for p in neighbor_contents:
 
-            pos_contents_bacteria = list(filter(lambda x: not isinstance(x, Soil), p))
-            space_avlaiable = len(pos_contents_bacteria) < self.max_num_bacteria_in_cell
+            space_avlaiable = len(list(filter(lambda x: not isinstance(x, Soil), p))) < self.max_num_bacteria_in_cell
 
             if space_avlaiable:
                 return [p[0].pos, False]
@@ -274,8 +259,7 @@ class Type_a_1(mesa.Agent):
             return True
 
         increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = starting_radius + 5)
-        unchecked_coordinates = list(set(increased_coordinates) - set(checked_coordinates))
-        unchecked_contents = list(map(lambda c: self.model.grid.get_cell_list_contents(c), unchecked_coordinates))
+        unchecked_contents = list(map(lambda c: self.model.grid.get_cell_list_contents(c), list(set(increased_coordinates) - set(checked_coordinates))))
 
         for c in unchecked_contents:
 
@@ -283,8 +267,7 @@ class Type_a_1(mesa.Agent):
 
             if free_space_avaliable:
                 
-                expansion_neighbours_contents = self.model.grid.get_neighbors(c[0].pos, moore =  True, include_center = True, radius = 1)
-                own_type_bacteria_avaliable = len(list(filter(lambda x: isinstance(x, Type_a_1), expansion_neighbours_contents))) > 0
+                own_type_bacteria_avaliable = len(list(filter(lambda x: isinstance(x, Type_a_1), self.model.grid.get_neighbors(c[0].pos, moore =  True, include_center = True, radius = 1)))) > 0
 
                 if own_type_bacteria_avaliable:
 
@@ -298,49 +281,42 @@ class Type_a_1(mesa.Agent):
 
         if self.area >= self.split_area:
 
-            if self.has_eaten:
+            # Wenn bereits mehr als max_num_bacteria_in_cell Bakteriean auf einem Feld sind, oder Zufällig random_spread_chance
+            if len(list(filter(lambda x: not isinstance(x, Soil), self.model.grid.get_cell_list_contents([self.pos])))) >= self.max_num_bacteria_in_cell or self.random.random() < self.random_spread_chance:
+                new_position, overpopulation = self.find_free_neighbor()
+            else:
+                # own position is good for a new cell
+                new_position = self.pos
+                overpopulation = False # we know that it is lower than max bacteria number for sure
+            
+            #If cell is overpopulated move all but one bacteria to a neighbor
+            if overpopulation:
 
-                self_contents = self.model.grid.get_cell_list_contents([self.pos])
-                self_contents_bacteria = list(filter(lambda x: not isinstance(x, Soil), self_contents))
-                # Wenn bereits mehr als max_num_bacteria_in_cell Bakteriean auf einem Feld sind, oder Zufällig random_spread_chance
-                if len(self_contents_bacteria) >= self.max_num_bacteria_in_cell or self.random.random() < self.random_spread_chance:
-                    new_position, overpopulation = self.find_free_neighbor()
-                else:
-                    # own position is good for a new cell
-                    new_position = self.pos
-                    overpopulation = False # we know that it is lower than max bacteria number for sure
+                neighbouring_bacteria = self.model.grid.get_neighbors(self.pos, moore =  True, include_center = True, radius = 1)
+                own_type_neighbouring_bacteria = list(filter(lambda x: isinstance(x, Type_a_1), neighbouring_bacteria))
+                self.model.random.shuffle(own_type_neighbouring_bacteria)
+                bacteria_to_move = own_type_neighbouring_bacteria[0]
                 
-                #If cell is overpopulated move all but one bacteria to a neighbor
-                if overpopulation:
+                checked_coordinates = self.model.grid.get_neighborhood(self.pos, moore = True, include_center = True, radius = 1)
+                overpopulation = self.microcolony_growth(bacteria_to_move, 1, checked_coordinates, max(self.model.grid_width, self.model.grid_height))
 
-                    neighbouring_bacteria = self.model.grid.get_neighbors(self.pos, moore =  True, include_center = True, radius = 1)
-                    own_type_neighbouring_bacteria = list(filter(lambda x: isinstance(x, Type_a_1), neighbouring_bacteria))
-                    self.model.random.shuffle(own_type_neighbouring_bacteria)
-                    bacteria_to_move = own_type_neighbouring_bacteria[0]
-                    
-                    checked_coordinates = self.model.grid.get_neighborhood(self.pos, moore = True, include_center = True, radius = 1)
-                    overpopulation = self.microcolony_growth(bacteria_to_move, 1, checked_coordinates, max(self.model.grid_width, self.model.grid_height))
+            if not overpopulation:
 
-                if not overpopulation:
+                # Reproduces in the new position
+                # Updating the mother bacteria
+                self.area = self.area * 0.5
 
-                    # Reproduces in the new position
-                    # Updating the mother bacteria
-                    self.area = self.area * 0.5
-                    self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
-
-                    # creating and placing new bacteria
-                    new_bacteria = Type_a_1(self.model.next_id(), self.model, new_position, self.area * 0.5, viability_time)
-                    self.model.grid.place_agent(new_bacteria, new_position)
-                    self.model.schedule.add(new_bacteria)
-                
-                else:
-                    self.viability_index += 1
-
-                self.has_eaten = False
+                # creating and placing new bacteria
+                new_bacteria = Type_a_1(self.model.next_id(), self.model, new_position, self.area * 0.5, viability_time)
+                self.model.grid.place_agent(new_bacteria, new_position)
+                self.model.schedule.add(new_bacteria)
+            
+            else:
+                self.viability_index += 1
     
     def die(self):
         
-        if  (self.area < self.min_area) or (self.viability_index >= self.max_viability_time) or (self.random.random() < self.dying_chance):
+        if  self.area < self.min_area or self.viability_index >= self.max_viability_time or self.random.random() < self.dying_chance:
                 # die
                 self.model.grid.remove_agent(self)
                 self.model.schedule.remove(self)
@@ -359,13 +335,8 @@ class Type_a_2(mesa.Agent):
 
         self.avaliability = 0.2 # Reference paper. Local avaliability of nutrients in a spatial cell for each bacterium
         self.nutrient_uptake_ratio = avoid_identical_clones(0.3) # Reference paper
-        self.max_possible_consumption = 0
         self.energy_yield = 0.65 # Reference paper has 0.15, does not work in our case because then the produced_energy < survival_energy
         self.maintenance = 0.1 # Reference paper. Units of energy that a unit of area requieres per each time step
-       
-        self.produced_energy = 0
-        self.survival_energy = 0
-        self.energy_netto = 0 # Netto energy produced by bacteria during eating. If positive -> bacterium acquires area, if negative -> shrinks
 
         self.max_viability_time = np.round(avoid_identical_clones(viability_time)) # maximum amount of times a bacteria can have a negative_netto energy
         self.viability_index = 0 # the viability index of the bacteria, if it becomes > than self.max_viability_time the bacteria dies or when bacteria has no space to reproduce
@@ -401,7 +372,6 @@ class Type_a_2(mesa.Agent):
 
         self.pos = pos
         self.age = 0
-        self.has_eaten = False
         
         # doesnt do anything when being eaten
         self.is_eaten = False
@@ -428,23 +398,16 @@ class Type_a_2(mesa.Agent):
         for nutrient in self.nutrition_list:
             # look if consumable nutrients in soil
             if nutrient in soil.nutrients and soil.nutrients[nutrient] > 0:
-               
-                self.max_possible_consumption = self.avaliability * soil.nutrients[nutrient] # the biggest amount each bacterium can consume
-                max_individual_uptake = self.area * self.nutrient_uptake_ratio
-                if self.max_possible_consumption >= max_individual_uptake:
-                    actual_consumption = max_individual_uptake # make sure that bacteria does not consume more nutrients than its individual consumption upper bounf
-                else: 
-                    actual_consumption = self.max_possible_consumption
 
-                # subract nutrient and set has_eaten
+                if self.avaliability * soil.nutrients[nutrient] >= self.area * self.nutrient_uptake_ratio:
+                    actual_consumption = self.area * self.nutrient_uptake_ratio # make sure that bacteria does not consume more nutrients than its individual consumption upper bounf
+                else: 
+                    actual_consumption = self.avaliability * soil.nutrients[nutrient]
+
                 soil.nutrients[nutrient] -= actual_consumption
 
+                self.energy_netto = self.energy_yield * actual_consumption  - self.maintenance * self.area
                 
-                self.produced_energy = self.energy_yield * actual_consumption # convert the consumed nutrients into energy
-                self.survival_energy = self.maintenance * self.area # the energy that bacteria needs to survive
-                self.energy_netto = self.produced_energy  - self.survival_energy
-                
-        
                 for antibiotic in self.antibiotics_list:
                     if antibiotic in soil.antibiotics and soil.antibiotics[antibiotic] > 0 and self.immediate_killing == False:
                         self.energy_netto -= self.energy_netto * self.aggressiveness 
@@ -457,7 +420,6 @@ class Type_a_2(mesa.Agent):
                 else: 
                     self.area = 0.9 * self.area # Reference paper. If the netto energy balance is negative -> bacteria does not cover its maintenance -> shrinks 10%
                     self.viability_index += 1
-                self.has_eaten = True   
     
     def find_free_neighbor(self): # find a neighboring cell to reproduce. If no free position is found, the output is a random neighbor position
         # second output indicates if the input position will be overpopulated after the division
@@ -468,8 +430,7 @@ class Type_a_2(mesa.Agent):
 
         for p in neighbor_contents:
 
-            pos_contents_bacteria = list(filter(lambda x: not isinstance(x, Soil), p))
-            space_avlaiable = len(pos_contents_bacteria) < self.max_num_bacteria_in_cell
+            space_avlaiable = len(list(filter(lambda x: not isinstance(x, Soil), p))) < self.max_num_bacteria_in_cell
 
             if space_avlaiable:
                 return [p[0].pos, False]
@@ -483,8 +444,7 @@ class Type_a_2(mesa.Agent):
             return True
 
         increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = starting_radius + 5)
-        unchecked_coordinates = list(set(increased_coordinates) - set(checked_coordinates))
-        unchecked_contents = list(map(lambda c: self.model.grid.get_cell_list_contents(c), unchecked_coordinates))
+        unchecked_contents = list(map(lambda c: self.model.grid.get_cell_list_contents(c), list(set(increased_coordinates) - set(checked_coordinates))))
 
         for c in unchecked_contents:
 
@@ -492,8 +452,7 @@ class Type_a_2(mesa.Agent):
 
             if free_space_avaliable:
                 
-                expansion_neighbours_contents = self.model.grid.get_neighbors(c[0].pos, moore =  True, include_center = True, radius = 1)
-                own_type_bacteria_avaliable = len(list(filter(lambda x: isinstance(x, Type_a_2), expansion_neighbours_contents))) > 0
+                own_type_bacteria_avaliable = len(list(filter(lambda x: isinstance(x, Type_a_2), self.model.grid.get_neighbors(c[0].pos, moore =  True, include_center = True, radius = 1)))) > 0
 
                 if own_type_bacteria_avaliable:
 
@@ -506,49 +465,42 @@ class Type_a_2(mesa.Agent):
 
         if self.area >= self.split_area:
 
-            if self.has_eaten:
+            # Wenn bereits mehr als max_num_bacteria_in_cell Bakteriean auf einem Feld sind, oder Zufällig random_spread_chance
+            if len(list(filter(lambda x: not isinstance(x, Soil), self.model.grid.get_cell_list_contents([self.pos])))) >= self.max_num_bacteria_in_cell or self.random.random() < self.random_spread_chance:
+                new_position, overpopulation = self.find_free_neighbor()
+            else:
+                # own position is good for a new cell
+                new_position = self.pos
+                overpopulation = False # we know that it is lower than max bacteria number for sure
+            
+            #If cell is overpopulated move all but one bacteria to a neighbor
+            if overpopulation:
 
-                self_contents = self.model.grid.get_cell_list_contents([self.pos])
-                self_contents_bacteria = list(filter(lambda x: not isinstance(x, Soil), self_contents))
-                # Wenn bereits mehr als max_num_bacteria_in_cell Bakteriean auf einem Feld sind, oder Zufällig random_spread_chance
-                if len(self_contents_bacteria) >= self.max_num_bacteria_in_cell or self.random.random() < self.random_spread_chance:
-                    new_position, overpopulation = self.find_free_neighbor()
-                else:
-                    # own position is good for a new cell
-                    new_position = self.pos
-                    overpopulation = False # we know that it is lower than max bacteria number for sure
+                neighbouring_bacteria = self.model.grid.get_neighbors(self.pos, moore =  True, include_center = True, radius = 1)
+                own_type_neighbouring_bacteria = list(filter(lambda x: isinstance(x, Type_a_1), neighbouring_bacteria))
+                self.model.random.shuffle(own_type_neighbouring_bacteria)
+                bacteria_to_move = own_type_neighbouring_bacteria[0]
                 
-                #If cell is overpopulated move all but one bacteria to a neighbor
-                if overpopulation:
+                checked_coordinates = self.model.grid.get_neighborhood(self.pos, moore = True, include_center = True, radius = 1)
+                overpopulation = self.microcolony_growth(bacteria_to_move, 1, checked_coordinates, max(self.model.grid_width, self.model.grid_height))
 
-                    neighbouring_bacteria = self.model.grid.get_neighbors(self.pos, moore =  True, include_center = True, radius = 1)
-                    own_type_neighbouring_bacteria = list(filter(lambda x: isinstance(x, Type_a_2), neighbouring_bacteria))
-                    self.model.random.shuffle(own_type_neighbouring_bacteria)
-                    bacteria_to_move = own_type_neighbouring_bacteria[0]
-                    
-                    checked_coordinates = self.model.grid.get_neighborhood(self.pos, moore = True, include_center = True, radius = 1)
-                    overpopulation = self.microcolony_growth(bacteria_to_move, 1, checked_coordinates, max(self.model.grid_width, self.model.grid_height))
+            if not overpopulation:
 
-                if not overpopulation:
+                # Reproduces in the new position
+                # Updating the mother bacteria
+                self.area = self.area * 0.5
 
-                    # Reproduces in the new position
-                    # Updating the mother bacteria
-                    self.area = self.area * 0.5
-                    self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
-
-                    # creating and placing new bacteria
-                    new_bacteria = Type_a_2(self.model.next_id(), self.model, new_position, self.area * 0.5, viability_time, self.immediate_killing, aggressiveness)
-                    self.model.grid.place_agent(new_bacteria, new_position)
-                    self.model.schedule.add(new_bacteria)
-                
-                else:
-                    self.viability_index += 1
-
-            self.has_eaten = False
+                # creating and placing new bacteria
+                new_bacteria = Type_a_2(self.model.next_id(), self.model, new_position, self.area * 0.5, viability_time, self.immediate_killing, aggressiveness)
+                self.model.grid.place_agent(new_bacteria, new_position)
+                self.model.schedule.add(new_bacteria)
+            
+            else:
+                self.viability_index += 1
 
     def die(self):
 
-             if (self.immediate_killing == True) and (self.random.random() < self.aggressiveness):
+             if self.immediate_killing == True and self.random.random() < self.aggressiveness:
                     
                     soil = self.model.grid.get_cell_list_contents([self.pos])[0]
                     for antibiotic in self.antibiotics_list:
@@ -560,7 +512,7 @@ class Type_a_2(mesa.Agent):
              else:
                 immediate_kill = False
                   
-             if (self.area < self.min_area) or (self.viability_index >= self.max_viability_time) or (self.random.random() < self.dying_chance) or (immediate_kill == True):
+             if self.area < self.min_area or self.viability_index >= self.max_viability_time or self.random.random() < self.dying_chance or immediate_kill == True:
                 
                 # die                
                 self.model.grid.remove_agent(self)
