@@ -268,12 +268,9 @@ class Type_a_1(mesa.Agent):
         return [p[0].pos, True]
 
     
-    def microcolony_growth(self, bacteria_to_move, starting_radius, checked_coordinates, max_search_radius):
-       
-        if starting_radius > max_search_radius:
-            return True
+    def microcolony_growth(self, bacteria_to_move, radius, checked_coordinates):
 
-        increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = starting_radius + 5)
+        increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = radius)
         unchecked_coordinates = list(set(increased_coordinates) - set(checked_coordinates))
         unchecked_contents = list(map(lambda c: self.model.grid.get_cell_list_contents(c), unchecked_coordinates))
 
@@ -290,9 +287,7 @@ class Type_a_1(mesa.Agent):
 
                     self.model.grid.move_agent(bacteria_to_move, c[0].pos)
                     return False
-                
-        return self.microcolony_growth(bacteria_to_move, starting_radius + 5, increased_coordinates, max_search_radius)
-
+        return True
             
     def reproduce(self):
 
@@ -319,7 +314,7 @@ class Type_a_1(mesa.Agent):
                     bacteria_to_move = own_type_neighbouring_bacteria[0]
                     
                     checked_coordinates = self.model.grid.get_neighborhood(self.pos, moore = True, include_center = True, radius = 1)
-                    overpopulation = self.microcolony_growth(bacteria_to_move, 1, checked_coordinates, max(self.model.grid_width, self.model.grid_height))
+                    overpopulation = self.microcolony_growth(bacteria_to_move, max(self.model.grid_width, self.model.grid_height), checked_coordinates)
 
                 if not overpopulation:
 
@@ -477,12 +472,9 @@ class Type_a_2(mesa.Agent):
         return [p[0].pos, True]
 
     
-    def microcolony_growth(self, bacteria_to_move, starting_radius, checked_coordinates, max_search_radius):
-       
-        if starting_radius > max_search_radius:
-            return True
+    def microcolony_growth(self, bacteria_to_move, radius, checked_coordinates):
 
-        increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = starting_radius + 5)
+        increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = radius)
         unchecked_coordinates = list(set(increased_coordinates) - set(checked_coordinates))
         unchecked_contents = list(map(lambda c: self.model.grid.get_cell_list_contents(c), unchecked_coordinates))
 
@@ -499,6 +491,7 @@ class Type_a_2(mesa.Agent):
 
                     self.model.grid.move_agent(bacteria_to_move, c[0].pos)
                     return False
+        return True
                 
         return self.microcolony_growth(bacteria_to_move, starting_radius + 5, increased_coordinates, max_search_radius)
             
@@ -527,7 +520,7 @@ class Type_a_2(mesa.Agent):
                     bacteria_to_move = own_type_neighbouring_bacteria[0]
                     
                     checked_coordinates = self.model.grid.get_neighborhood(self.pos, moore = True, include_center = True, radius = 1)
-                    overpopulation = self.microcolony_growth(bacteria_to_move, 1, checked_coordinates, max(self.model.grid_width, self.model.grid_height))
+                    overpopulation = self.microcolony_growth(bacteria_to_move, max(self.model.grid_width, self.model.grid_height), checked_coordinates)
 
                 if not overpopulation:
 
