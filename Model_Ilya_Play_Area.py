@@ -110,8 +110,6 @@ class Type_a_1(mesa.Agent):
         self.energy_yield = 0.65 # Reference paper has 0.15, does not work in our case because then the produced_energy < survival_energy
         self.maintenance = 0.1 # Reference paper. Units of energy that a unit of area requieres per each time step
        
-        self.produced_energy = 0
-        self.survival_energy = 0
         self.energy_netto = 0 # Netto energy produced by bacteria during eating. If positive -> bacterium acquires area, if negative -> shrinks
 
         self.max_viability_time = np.round(avoid_identical_clones(viability_time)) # maximum amount of times a bacteria can have a negative_netto energy
@@ -235,11 +233,7 @@ class Type_a_1(mesa.Agent):
 
                 # subract nutrient and set has_eaten
                 soil.nutrients[nutrient] -= actual_consumption
-
-                
-                self.produced_energy = self.energy_yield * actual_consumption # convert the consumed nutrients into energy
-                self.survival_energy = self.maintenance * self.area # the energy that bacteria needs to survive
-                self.energy_netto = self.produced_energy  - self.survival_energy
+                self.energy_netto = self.energy_yield * actual_consumption  - self.maintenance * self.area # energy coming from the consumed nutrients - the energy that bacteria needs to survive
                 
 
                 if self.energy_netto >= 0:
@@ -357,9 +351,7 @@ class Type_a_2(mesa.Agent):
         self.max_possible_consumption = 0
         self.energy_yield = 0.65 # Reference paper has 0.15, does not work in our case because then the produced_energy < survival_energy
         self.maintenance = 0.1 # Reference paper. Units of energy that a unit of area requieres per each time step
-       
-        self.produced_energy = 0
-        self.survival_energy = 0
+    
         self.energy_netto = 0 # Netto energy produced by bacteria during eating. If positive -> bacterium acquires area, if negative -> shrinks
 
         self.max_viability_time = np.round(avoid_identical_clones(viability_time)) # maximum amount of times a bacteria can have a negative_netto energy
@@ -433,11 +425,7 @@ class Type_a_2(mesa.Agent):
 
                 # subract nutrient and set has_eaten
                 soil.nutrients[nutrient] -= actual_consumption
-
-                
-                self.produced_energy = self.energy_yield * actual_consumption # convert the consumed nutrients into energy
-                self.survival_energy = self.maintenance * self.area # the energy that bacteria needs to survive
-                self.energy_netto = self.produced_energy  - self.survival_energy
+                self.energy_netto = self.energy_yield * actual_consumption  - self.maintenance * self.area # energy coming from the consumed nutrients - the energy that bacteria needs to survive
                 
         
                 for antibiotic in self.antibiotics_list:
