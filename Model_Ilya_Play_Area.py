@@ -90,7 +90,6 @@ def avoid_identical_clones(mean_value, variation_coefficient = 0.1, num_samples 
 s_mutens_radius = 0.75 # micrometers
 average_bacteria_area = 4 * math.pi * s_mutens_radius**2 # micrometers square, using sphere area formula, if we multiply by the 10^6 factor its 
 viability_time = 50 # how many times can a bacteria have negative netto_energy and shrink
-aggressiveness = 0.02
 
 ### PREDATOR
 
@@ -262,9 +261,12 @@ class Type_a_1(mesa.Agent):
         return [p[0].pos, True]
 
     
-    def microcolony_growth(self, bacteria_to_move, radius, checked_coordinates):
+    def microcolony_growth(self, bacteria_to_move, starting_radius, checked_coordinates, max_search_radius):
+       
+        if starting_radius > max_search_radius:
+            return True
 
-        increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = radius)
+        increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = starting_radius + 5)
         unchecked_coordinates = list(set(increased_coordinates) - set(checked_coordinates))
         unchecked_contents = list(map(lambda c: self.model.grid.get_cell_list_contents(c), unchecked_coordinates))
 
@@ -274,14 +276,14 @@ class Type_a_1(mesa.Agent):
 
             if free_space_avaliable:
                 
-                expansion_neighbours_contents = self.model.grid.get_neighbors(c[0].pos, moore =  True, include_center = True, radius = 1)
-                own_type_bacteria_avaliable = len(list(filter(lambda x: isinstance(x, Type_a_1), expansion_neighbours_contents))) > 0
+                own_type_bacteria_avaliable = len(list(filter(lambda x: isinstance(x, Type_a_1), self.model.grid.get_neighbors(c[0].pos, moore =  True, include_center = True, radius = 1)))) > 0
 
                 if own_type_bacteria_avaliable:
 
                     self.model.grid.move_agent(bacteria_to_move, c[0].pos)
                     return False
-        return True
+                
+        return self.microcolony_growth(bacteria_to_move, starting_radius + 5, increased_coordinates, max_search_radius)
             
     def reproduce(self):
 
@@ -308,7 +310,7 @@ class Type_a_1(mesa.Agent):
                     bacteria_to_move = own_type_neighbouring_bacteria[0]
                     
                     checked_coordinates = self.model.grid.get_neighborhood(self.pos, moore = True, include_center = True, radius = 1)
-                    overpopulation = self.microcolony_growth(bacteria_to_move, max(self.model.grid_width, self.model.grid_height), checked_coordinates)
+                    overpopulation = self.microcolony_growth(bacteria_to_move, 1, checked_coordinates, max(self.model.grid_width, self.model.grid_height))
 
                 if not overpopulation:
 
@@ -358,8 +360,9 @@ class Type_a_2(mesa.Agent):
         self.viability_index = 0 # the viability index of the bacteria, if it becomes > than self.max_viability_time the bacteria dies or when bacteria has no space to reproduce
         self.dying_chance = np.random.uniform(0.001, 0.01) # Each bacterium has a probability between 0.1 and 1% to die
 
-        self.immediate_killing = immediate_killing # Default False
-        self.aggressiveness  = avoid_identical_clones(aggressiveness)# If immediate_killing = T its probability of the immediate kill, else percentage of energy decreased from the netto_energy of bacteria
+        self.immediate_killing = immediate_killing 
+        self.average_aggressiveness = aggressiveness
+        self.aggressiveness  = avoid_identical_clones(self.average_aggressiveness)# If immediate_killing = T its probability of the immediate kill, else percentage of energy decreased from the netto_energy of bacteria
 
         ################################
         ### CUSTOMIZABLE VARIABLES
@@ -460,9 +463,12 @@ class Type_a_2(mesa.Agent):
         return [p[0].pos, True]
 
     
-    def microcolony_growth(self, bacteria_to_move, radius, checked_coordinates):
+    def microcolony_growth(self, bacteria_to_move, starting_radius, checked_coordinates, max_search_radius):
+       
+        if starting_radius > max_search_radius:
+            return True
 
-        increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = radius)
+        increased_coordinates = self.model.grid.get_neighborhood(bacteria_to_move.pos, moore = True, include_center = True, radius = starting_radius + 5)
         unchecked_coordinates = list(set(increased_coordinates) - set(checked_coordinates))
         unchecked_contents = list(map(lambda c: self.model.grid.get_cell_list_contents(c), unchecked_coordinates))
 
@@ -472,14 +478,12 @@ class Type_a_2(mesa.Agent):
 
             if free_space_avaliable:
                 
-                expansion_neighbours_contents = self.model.grid.get_neighbors(c[0].pos, moore =  True, include_center = True, radius = 1)
-                own_type_bacteria_avaliable = len(list(filter(lambda x: isinstance(x, Type_a_2), expansion_neighbours_contents))) > 0
+                own_type_bacteria_avaliable = len(list(filter(lambda x: isinstance(x, Type_a_2), self.model.grid.get_neighbors(c[0].pos, moore =  True, include_center = True, radius = 1)))) > 0
 
                 if own_type_bacteria_avaliable:
 
                     self.model.grid.move_agent(bacteria_to_move, c[0].pos)
                     return False
-        return True
                 
         return self.microcolony_growth(bacteria_to_move, starting_radius + 5, increased_coordinates, max_search_radius)
             
@@ -508,7 +512,7 @@ class Type_a_2(mesa.Agent):
                     bacteria_to_move = own_type_neighbouring_bacteria[0]
                     
                     checked_coordinates = self.model.grid.get_neighborhood(self.pos, moore = True, include_center = True, radius = 1)
-                    overpopulation = self.microcolony_growth(bacteria_to_move, max(self.model.grid_width, self.model.grid_height), checked_coordinates)
+                    overpopulation = self.microcolony_growth(bacteria_to_move, 1, checked_coordinates, max(self.model.grid_width, self.model.grid_height))
 
                 if not overpopulation:
 
@@ -518,7 +522,7 @@ class Type_a_2(mesa.Agent):
                     self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
 
                     # creating and placing new bacteria
-                    new_bacteria = Type_a_2(self.model.next_id(), self.model, new_position, self.area * 0.5, viability_time, self.immediate_killing, aggressiveness)
+                    new_bacteria = Type_a_2(self.model.next_id(), self.model, new_position, self.area * 0.5, viability_time, self.immediate_killing, self.average_aggressiveness)
                     self.model.grid.place_agent(new_bacteria, new_position)
                     self.model.schedule.add(new_bacteria)
                 
@@ -560,8 +564,8 @@ class Microbiome(mesa.Model):
     """A model with some number of agents."""
     # EVERYTHING WITH FIVE HASHTAGS IS RELATED TO INITIAL MESA SCAFFOLD AND COULD BE USEFULL IN THE FUTURE
 
-    def __init__(self, num_type_a_1, num_type_a_2 ,is_torus, grid_height, grid_width, # Compulsory inputs for the simulation
-                 avrg_area_type_a = average_bacteria_area, avrg_viability_time_type_a = viability_time, immediate_killing = False, aggressiveness = aggressiveness): # Variables that have a default value but can be changed
+    def __init__(self, num_type_a_1, num_type_a_2 ,is_torus, grid_height, grid_width, immediate_killing, aggressiveness, # Compulsory inputs for the simulation
+                 avrg_area_type_a = average_bacteria_area, avrg_viability_time_type_a = viability_time): # Variables that have a default value but can be changed
 
         ################################
         ### CUSTOMIZABLE VARIABLES
