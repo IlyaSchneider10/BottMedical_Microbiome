@@ -68,6 +68,9 @@ model_params = {
     ),
     "grid_height": mesa.visualization.Slider(
         "Grid height", 50, 0, 100, description=""
+    ),
+    "aggressiveness": mesa.visualization.Slider(
+        "Aggressiveness", 0.01, 0, 1, description=""
     )
 }
 
