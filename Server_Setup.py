@@ -1,6 +1,6 @@
 import mesa
 
-from Model_Ilya_Play_Area import Microbiome, Soil, Type_a_1, Type_a_2
+from Model_Ilya_Play_Area_Convolution import Microbiome, Soil, Type_a_1, Type_a_2
 
 # EVERYTHING WITH FIVE HASHTAGS IS RELATED TO INITIAL MESA SCAFFOLD AND COULD BE USEFULL IN THE FUTURE
 
@@ -70,7 +70,7 @@ model_params = {
         "Grid height", 50, 0, 100, description=""
     ),
     "aggressiveness": mesa.visualization.Slider(
-        "Aggressiveness", 0.01, 0, 1, description=""
+        "Aggressiveness", 0.01, 0.0, 1.0, description=""
     )
 }
 
