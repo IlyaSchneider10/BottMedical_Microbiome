@@ -89,7 +89,7 @@ def avoid_identical_clones(mean_value, variation_coefficient = 0.1, num_samples 
 
 s_mutens_radius = 0.75 # micrometers
 average_bacteria_area = 4 * math.pi * s_mutens_radius**2 # micrometers square, using sphere area formula, if we multiply by the 10^6 factor its 
-viability_time = 50 # how many times can a bacteria have negative netto_energy and shrink
+viability_time = 25 # how many times can a bacteria have negative netto_energy and shrink
 
 ### PREDATOR
 
@@ -105,10 +105,11 @@ class Type_a_1(mesa.Agent):
 
         self.avaliability = 0.2 # Reference paper. Local avaliability of nutrients in a spatial cell for each bacterium
         self.nutrient_uptake_ratio = avoid_identical_clones(0.3) # Reference paper
-        self.max_possible_consumption = 0
         self.energy_yield = 0.65 # Reference paper has 0.15, does not work in our case because then the produced_energy < survival_energy
         self.maintenance = 0.1 # Reference paper. Units of energy that a unit of area requieres per each time step
-       
+        
+        self.max_possible_consumption = 0 # the biggest amount each bacterium can consume
+        self.max_individual_uptake = 0
         self.energy_netto = 0 # Netto energy produced by bacteria during eating. If positive -> bacterium acquires area, if negative -> shrinks
 
         self.max_viability_time = np.round(avoid_identical_clones(viability_time)) # maximum amount of times a bacteria can have a negative_netto energy
@@ -259,6 +260,7 @@ class Type_a_1(mesa.Agent):
 
                     new_bacteria= Type_a_1(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, viability_time)
                     self.area = self.area * 0.5
+                    self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
         
                     self.model.grid.place_agent(new_bacteria, reproduction_pos)
                     self.model.schedule.add(new_bacteria)
@@ -272,6 +274,7 @@ class Type_a_1(mesa.Agent):
                 reproduction_pos = self.pos
                 new_bacteria= Type_a_1(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, viability_time)
                 self.area = self.area * 0.5
+                self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
         
                 self.model.grid.place_agent(new_bacteria, reproduction_pos)
                 self.model.schedule.add(new_bacteria)
@@ -300,10 +303,11 @@ class Type_a_2(mesa.Agent):
 
         self.avaliability = 0.2 # Reference paper. Local avaliability of nutrients in a spatial cell for each bacterium
         self.nutrient_uptake_ratio = avoid_identical_clones(0.3) # Reference paper
-        self.max_possible_consumption = 0
         self.energy_yield = 0.65 # Reference paper has 0.15, does not work in our case because then the produced_energy < survival_energy
         self.maintenance = 0.1 # Reference paper. Units of energy that a unit of area requieres per each time step
     
+        self.max_possible_consumption = 0 # the biggest amount each bacterium can consume
+        self.max_individual_uptake = 0
         self.energy_netto = 0 # Netto energy produced by bacteria during eating. If positive -> bacterium acquires area, if negative -> shrinks
 
         self.max_viability_time = np.round(avoid_identical_clones(viability_time)) # maximum amount of times a bacteria can have a negative_netto energy
@@ -412,6 +416,7 @@ class Type_a_2(mesa.Agent):
 
                     new_bacteria= Type_a_2(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, viability_time, False, self.average_aggressiveness)
                     self.area = self.area * 0.5
+                    self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
         
                     self.model.grid.place_agent(new_bacteria, reproduction_pos)
                     self.model.schedule.add(new_bacteria)
@@ -425,6 +430,7 @@ class Type_a_2(mesa.Agent):
                 reproduction_pos = self.pos
                 new_bacteria= Type_a_2(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, viability_time, False, self.average_aggressiveness)
                 self.area = self.area * 0.5
+                self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
         
                 self.model.grid.place_agent(new_bacteria, reproduction_pos)
                 self.model.schedule.add(new_bacteria)
