@@ -580,14 +580,15 @@ class Microbiome(mesa.Model):
 
                 if len(bacteria_neighbors) > 0:
 
-                    a_1 = list(filter(lambda x: isinstance(x, Type_a_1), bacteria_neighbors))
-                    a_2 = list(filter(lambda x: isinstance(x, Type_a_2), bacteria_neighbors))
+                    self.random.shuffle(bacteria_neighbors)
+                    reference_neighbor = bacteria_neighbors[0]
 
-                    if len(a_1) > len(a_2):
+                    if isinstance(reference_neighbor, Type_a_1):
                         a_1_coordinates.append(a)
 
                     else:
                         a_2_coordinates.append(a)
+                        
 
         self.random.shuffle(a_1_coordinates)
         self.random.shuffle(a_2_coordinates)
