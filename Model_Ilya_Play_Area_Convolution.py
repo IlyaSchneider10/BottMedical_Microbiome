@@ -89,7 +89,7 @@ def avoid_identical_clones(mean_value, variation_coefficient = 0.1, num_samples 
 
 s_mutens_radius = 0.75 # micrometers
 average_bacteria_area = 4 * math.pi * s_mutens_radius**2 # micrometers square, using sphere area formula, if we multiply by the 10^6 factor its 
-viability_time = 25 # how many times can a bacteria have negative netto_energy and shrink
+viability_time = 35 # how many times can a bacteria have negative netto_energy and shrink
 
 ### PREDATOR
 
@@ -581,19 +581,67 @@ class Microbiome(mesa.Model):
 
             if free_space_avaliable:
                 
-                neighbors = self.grid.get_neighbors(a, moore =  True, include_center = True, radius = 1)
+                neighbors = self.grid.get_neighbors(a, moore =  True, include_center = False, radius = 1)
                 bacteria_neighbors = list(filter(lambda x: not isinstance(x, Soil), neighbors))
 
                 if len(bacteria_neighbors) > 0:
 
-                    self.random.shuffle(bacteria_neighbors)
-                    reference_neighbor = bacteria_neighbors[0]
+                    a_1 = list(filter(lambda x: isinstance(x, Type_a_1), bacteria_neighbors))
+                    a_2 = list(filter(lambda x: isinstance(x, Type_a_2), bacteria_neighbors))
 
-                    if isinstance(reference_neighbor, Type_a_1):
+                    if len(a_1) > len(a_2):
                         a_1_coordinates.append(a)
 
                     else:
                         a_2_coordinates.append(a)
+
+        self.random.shuffle(a_1_coordinates)
+        self.random.shuffle(a_2_coordinates)
+                
+        return a_1_coordinates, a_2_coordinates
+
+    # def find_free_space(self, max_search_radius):
+
+    #     all_coordinates = self.grid.get_neighborhood((0,0), moore = True, include_center = True, radius = max_search_radius)
+    #     a_1_coordinates = []
+    #     a_2_coordinates = []
+
+    #     for a in all_coordinates:
+
+    #         contents = self.grid.get_cell_list_contents(a)
+    #         bacteria_contents = list(filter(lambda x: not isinstance(x, Soil), contents))
+    #         bacteria_number = len(bacteria_contents)
+    #         free_space_avaliable = bacteria_number < self.max_num_bacteria_in_cell
+
+    #         if free_space_avaliable:
+
+    #             if bacteria_number == 0:
+
+    #                 neighbors = self.grid.get_neighbors(a, moore =  True, include_center = False, radius = 1)
+    #                 bacteria_neighbors = list(filter(lambda x: not isinstance(x, Soil), neighbors))
+    #                 bacteria_neighbors_number = len(bacteria_neighbors)
+
+    #                 if bacteria_neighbors_number > 0:
+
+    #                     a_1 = list(filter(lambda x: isinstance(x, Type_a_1), bacteria_neighbors))
+    #                     a_2 = list(filter(lambda x: isinstance(x, Type_a_2), bacteria_neighbors))
+
+    #                     if len(a_1) > len(a_2):
+    #                         a_1_coordinates.append(a)
+
+    #                     else:
+    #                         a_2_coordinates.append(a)
+
+                # else:
+
+                #     a_1_bacteria_number = len(list(filter(lambda x: isinstance(x, Type_a_1), bacteria_contents)))
+                #     a_2_bacteria_number = len(list(filter(lambda x: isinstance(x, Type_a_2), bacteria_contents)))
+
+                #     if a_1_bacteria_number == bacteria_number:
+                #         a_1_coordinates.append(a)
+
+                #     elif a_2_bacteria_number == bacteria_number:
+                #         a_2_coordinates.append(a)
                         
 
         self.random.shuffle(a_1_coordinates)
