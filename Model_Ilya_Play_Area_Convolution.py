@@ -482,6 +482,12 @@ class Microbiome(mesa.Model):
         # canvas_element = mesa.visualization.CanvasGrid(bacteria_portrayal, self.grid_width, self.grid_height, 500, 500)
         self.grid_width = grid_width
         self.grid_height = grid_height
+
+        # All used for quantifying the initial conditions
+        self.a1_edge_distance = []
+        self.a2_edge_distance = []
+        self.a2_competition_index = []
+        
         # decides after how many turns the random direction of the type_d swarms changes
         # prevents the swarm from going back and forth 
         # done in the model for the whole swarm, so it doesnt spread
@@ -541,6 +547,7 @@ class Microbiome(mesa.Model):
                 self.grid.place_agent(soil, (i, j))
 
         # Create Type_a_1
+        self.a1_initial_pos = [] 
         for i in range(num_type_a_1):
             x = self.random.randrange(self.grid.width)
             y = self.random.randrange(self.grid.height)
@@ -548,8 +555,12 @@ class Microbiome(mesa.Model):
             self.schedule.add(a)
             # Add the agent to a random grid cell
             self.grid.place_agent(a, (x, y))
+            self.a1_initial_pos.append((x,y))
+            
 
         # Create Type_a_2"
+        self.a2_initial_pos = []
+        self.a1_initial_aggressiveness = []
         for i in range(num_type_a_2):
             x = self.random.randrange(self.grid.width)
             y = self.random.randrange(self.grid.height)
@@ -557,7 +568,8 @@ class Microbiome(mesa.Model):
             self.schedule.add(a)
             # Add the agent to a random grid cell
             self.grid.place_agent(a, (x, y))
-
+            self.a2_initial_pos.append((x,y))
+            self.a1_initial_aggressiveness.append(a.aggressiveness)
 
         self.datacollector = mesa.DataCollector(
             model_reporters={
@@ -567,11 +579,51 @@ class Microbiome(mesa.Model):
             }
         )
 
+        self.quantify_initial_conditions()
+
+# Computes the minimum distsnce till edge for each bacteria and the ratio of the own type next to it
+    def quantify_initial_conditions(self):
+
+        width = self.grid.width
+        height = self.grid.height
+
+        all_edges = [(x, 0) for x in range(width)] + \
+            [(x, height - 1) for x in range(width)] + \
+            [(0, y) for y in range(height)] + \
+            [(width - 1, y) for y in range(height)]
+
+        for a1 in self.a1_initial_pos:
+
+            a1_distances = [np.linalg.norm(np.array([a1[0] - edge_x, a1[1] - edge_y])) for edge_x, edge_y in all_edges]
+            a1_min_distance = min(a1_distances)
+            self.a1_edge_distance.append(a1_min_distance)
+
+        for a2 in self.a2_initial_pos:
+
+            a2_distances = [np.linalg.norm(np.array([a2[0] - edge_x, a2[1] - edge_y])) for edge_x, edge_y in all_edges]
+            a2_min_distance = min(a2_distances)
+            self.a2_edge_distance.append(a2_min_distance)
+
+            intial_contents = self.grid.get_neighbors(a2, moore = True, include_center = False, radius = 5)
+            initial_bacteria = list(filter(lambda x: not isinstance(x, Soil), intial_contents))
+
+            if len(initial_bacteria) == 0:
+                self.a2_competition_index.append(0)
+            else:
+                initial_a2 = list(filter(lambda x: isinstance(x, Type_a_1), initial_bacteria))
+                self.a2_competition_index.append(len(initial_a2)/len(initial_bacteria))
+
+# A function that can be called to get all the intial conditions
+    def output_initial_conditions(self):
+
+        return np.mean(self.a1_edge_distance), np.mean(self.a2_edge_distance), np.round(np.median(self.a1_initial_aggressiveness)*100,2), np.round(np.median(self.a2_competition_index),2)
+
+        
     def find_free_space(self, max_search_radius):
 
         all_coordinates = self.grid.get_neighborhood((0,0), moore = True, include_center = True, radius = max_search_radius)
-        a_1_coordinates = []
-        a_2_coordinates = []
+        a1_coordinates = []
+        a2_coordinates = []
 
         for a in all_coordinates:
 
@@ -586,74 +638,28 @@ class Microbiome(mesa.Model):
 
                 if len(bacteria_neighbors) > 0:
 
-                    a_1 = list(filter(lambda x: isinstance(x, Type_a_1), bacteria_neighbors))
-                    a_2 = list(filter(lambda x: isinstance(x, Type_a_2), bacteria_neighbors))
+                    a1 = list(filter(lambda x: isinstance(x, Type_a_1), bacteria_neighbors))
+                    a2 = list(filter(lambda x: isinstance(x, Type_a_2), bacteria_neighbors))
 
-                    if len(a_1) > len(a_2):
-                        a_1_coordinates.append(a)
+                    if len(a1) > len(a2):
+                        a1_coordinates.append(a)
 
                     else:
-                        a_2_coordinates.append(a)
+                        a2_coordinates.append(a)
 
-        self.random.shuffle(a_1_coordinates)
-        self.random.shuffle(a_2_coordinates)
+        self.random.shuffle(a1_coordinates)
+        self.random.shuffle(a2_coordinates)
                 
-        return a_1_coordinates, a_2_coordinates
-
-    # def find_free_space(self, max_search_radius):
-
-    #     all_coordinates = self.grid.get_neighborhood((0,0), moore = True, include_center = True, radius = max_search_radius)
-    #     a_1_coordinates = []
-    #     a_2_coordinates = []
-
-    #     for a in all_coordinates:
-
-    #         contents = self.grid.get_cell_list_contents(a)
-    #         bacteria_contents = list(filter(lambda x: not isinstance(x, Soil), contents))
-    #         bacteria_number = len(bacteria_contents)
-    #         free_space_avaliable = bacteria_number < self.max_num_bacteria_in_cell
-
-    #         if free_space_avaliable:
-
-    #             if bacteria_number == 0:
-
-    #                 neighbors = self.grid.get_neighbors(a, moore =  True, include_center = False, radius = 1)
-    #                 bacteria_neighbors = list(filter(lambda x: not isinstance(x, Soil), neighbors))
-    #                 bacteria_neighbors_number = len(bacteria_neighbors)
-
-    #                 if bacteria_neighbors_number > 0:
-
-    #                     a_1 = list(filter(lambda x: isinstance(x, Type_a_1), bacteria_neighbors))
-    #                     a_2 = list(filter(lambda x: isinstance(x, Type_a_2), bacteria_neighbors))
-
-    #                     if len(a_1) > len(a_2):
-    #                         a_1_coordinates.append(a)
-
-    #                     else:
-    #                         a_2_coordinates.append(a)
-
-                # else:
-
-                #     a_1_bacteria_number = len(list(filter(lambda x: isinstance(x, Type_a_1), bacteria_contents)))
-                #     a_2_bacteria_number = len(list(filter(lambda x: isinstance(x, Type_a_2), bacteria_contents)))
-
-                #     if a_1_bacteria_number == bacteria_number:
-                #         a_1_coordinates.append(a)
-
-                #     elif a_2_bacteria_number == bacteria_number:
-                #         a_2_coordinates.append(a)
-                        
-
-        self.random.shuffle(a_1_coordinates)
-        self.random.shuffle(a_2_coordinates)
-                
-        return a_1_coordinates, a_2_coordinates
+        return a1_coordinates, a2_coordinates
 
 
     def step(self):
         self.step_num += 1
-        
-        
+
+        # run agents
+        self.a1_free_space, self.a2_free_space = self.find_free_space(max(self.grid_width, self.grid_height))
+        self.datacollector.collect(self)
+        self.schedule.step()
 
         # reset swarm target
         ##### for idx, target in enumerate(self.swarm_target):
@@ -689,9 +695,3 @@ class Microbiome(mesa.Model):
         #####     self.reproduction_stop_a_2 = True
         ##### else:
         #####     self.reproduction_stop_a_2 = False    
-
-
-        # run agents
-        self.a1_free_space, self.a2_free_space = self.find_free_space(max(self.grid_width, self.grid_height))
-        self.datacollector.collect(self)
-        self.schedule.step()
