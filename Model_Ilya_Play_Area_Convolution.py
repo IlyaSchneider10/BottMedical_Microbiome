@@ -89,13 +89,12 @@ def avoid_identical_clones(mean_value, variation_coefficient = 0.1, num_samples 
 
 s_mutens_radius = 0.75 # micrometers
 average_bacteria_area = 4 * math.pi * s_mutens_radius**2 # micrometers square, using sphere area formula, if we multiply by the 10^6 factor its 
-viability_time = 35 # how many times can a bacteria have negative netto_energy and shrink
 
 ### PREDATOR
 
 class Type_a_1(mesa.Agent):
 
-    def __init__(self, unique_id, model, pos, area, viability_time):
+    def __init__(self, unique_id, model, pos, area, avrg_viability_time_type_a):
         super().__init__(unique_id, model)
 
         ##### Ilya Additions:
@@ -112,7 +111,8 @@ class Type_a_1(mesa.Agent):
         self.max_individual_uptake = 0
         self.energy_netto = 0 # Netto energy produced by bacteria during eating. If positive -> bacterium acquires area, if negative -> shrinks
 
-        self.max_viability_time = np.round(avoid_identical_clones(viability_time)) # maximum amount of times a bacteria can have a negative_netto energy
+        self.average_viability_time = avrg_viability_time_type_a
+        self.max_viability_time = np.round(avoid_identical_clones(self.average_viability_time)) # maximum amount of times a bacteria can have a negative_netto energy
         self.viability_index = 0 # the viability index of the bacteria, if it becomes > than self.max_viability_time the bacteria dies or when bacteria has no space to reproduce
         self.dying_chance = np.random.uniform(0.001, 0.01) # Each bacterium has a probability between 0.1 and 1% to die
 
@@ -258,7 +258,7 @@ class Type_a_1(mesa.Agent):
                     self.model.grid.move_agent(self, self.model.a1_free_space[0])
                     del self.model.a1_free_space[0]
 
-                    new_bacteria= Type_a_1(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, viability_time)
+                    new_bacteria= Type_a_1(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time)
                     self.area = self.area * 0.5
                     self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
         
@@ -272,7 +272,7 @@ class Type_a_1(mesa.Agent):
             else:
 
                 reproduction_pos = self.pos
-                new_bacteria= Type_a_1(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, viability_time)
+                new_bacteria= Type_a_1(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time)
                 self.area = self.area * 0.5
                 self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
         
@@ -293,7 +293,7 @@ class Type_a_1(mesa.Agent):
 
 class Type_a_2(mesa.Agent):
 
-    def __init__(self, unique_id, model, pos, area, viability_time, immediate_killing, aggressiveness):
+    def __init__(self, unique_id, model, pos, area, avrg_viability_time_type_a, immediate_killing, aggressiveness):
         super().__init__(unique_id, model)
 
         ##### Ilya Additions:
@@ -310,7 +310,8 @@ class Type_a_2(mesa.Agent):
         self.max_individual_uptake = 0
         self.energy_netto = 0 # Netto energy produced by bacteria during eating. If positive -> bacterium acquires area, if negative -> shrinks
 
-        self.max_viability_time = np.round(avoid_identical_clones(viability_time)) # maximum amount of times a bacteria can have a negative_netto energy
+        self.average_viability_time = avrg_viability_time_type_a
+        self.max_viability_time = np.round(avoid_identical_clones(self.average_viability_time)) # maximum amount of times a bacteria can have a negative_netto energy
         self.viability_index = 0 # the viability index of the bacteria, if it becomes > than self.max_viability_time the bacteria dies or when bacteria has no space to reproduce
         self.dying_chance = np.random.uniform(0.001, 0.01) # Each bacterium has a probability between 0.1 and 1% to die
 
@@ -414,7 +415,7 @@ class Type_a_2(mesa.Agent):
                     self.model.grid.move_agent(self, self.model.a2_free_space[0])
                     del self.model.a2_free_space[0]
 
-                    new_bacteria= Type_a_2(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, viability_time, False, self.average_aggressiveness)
+                    new_bacteria= Type_a_2(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, False, self.average_aggressiveness)
                     self.area = self.area * 0.5
                     self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
         
@@ -428,7 +429,7 @@ class Type_a_2(mesa.Agent):
             else:
 
                 reproduction_pos = self.pos
-                new_bacteria= Type_a_2(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, viability_time, False, self.average_aggressiveness)
+                new_bacteria= Type_a_2(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, False, self.average_aggressiveness)
                 self.area = self.area * 0.5
                 self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
         
@@ -472,8 +473,8 @@ class Microbiome(mesa.Model):
     """A model with some number of agents."""
     # EVERYTHING WITH FIVE HASHTAGS IS RELATED TO INITIAL MESA SCAFFOLD AND COULD BE USEFULL IN THE FUTURE
 
-    def __init__(self, num_type_a_1, num_type_a_2 ,is_torus, grid_height, grid_width, immediate_killing, aggressiveness, # Compulsory inputs for the simulation
-                 avrg_area_type_a = average_bacteria_area, avrg_viability_time_type_a = viability_time): # Variables that have a default value but can be changed
+    def __init__(self, num_type_a_1, num_type_a_2 ,is_torus, grid_height, grid_width, immediate_killing, aggressiveness, avrg_viability_time_type_a,# Compulsory inputs for the simulation
+                 avrg_area_type_a = average_bacteria_area): # Variables that have a default value but can be changed
 
         ################################
         ### CUSTOMIZABLE VARIABLES
@@ -571,15 +572,17 @@ class Microbiome(mesa.Model):
             self.a2_initial_pos.append((x,y))
             self.a1_initial_aggressiveness.append(a.aggressiveness)
 
+        self.initial_consitions = self.quantify_initial_conditions()    
+
         self.datacollector = mesa.DataCollector(
             model_reporters={
                 "Type_a_1": [get_num_bacteria_per_type, [self, Type_a_1]],
-                "Type_a_2": [get_num_bacteria_per_type, [self, Type_a_2]]
-
+                "Type_a_2": [get_num_bacteria_per_type, [self, Type_a_2]],
+                #"Initial conditions": self.initial_consitions
             }
         )
 
-        self.quantify_initial_conditions()
+        
 
 # Computes the minimum distsnce till edge for each bacteria and the ratio of the own type next to it
     def quantify_initial_conditions(self):
