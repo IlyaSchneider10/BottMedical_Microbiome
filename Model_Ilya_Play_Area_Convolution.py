@@ -572,17 +572,18 @@ class Microbiome(mesa.Model):
             self.a2_initial_pos.append((x,y))
             self.a1_initial_aggressiveness.append(a.aggressiveness)
 
-        self.initial_consitions = self.quantify_initial_conditions()    
+        self.initial_conditions = self.quantify_initial_conditions()    
 
         self.datacollector = mesa.DataCollector(
             model_reporters={
-                "Type_a_1": [get_num_bacteria_per_type, [self, Type_a_1]],
-                "Type_a_2": [get_num_bacteria_per_type, [self, Type_a_2]],
-                #"Initial conditions": self.initial_consitions
+                "A1_Initial_Edge_Distance": lambda m: np.mean(m.a1_edge_distance),
+                "A2_Initial_Edge_Distance": lambda m: np.mean(m.a2_edge_distance),
+                "A1_Initial_Aggressiveness": lambda m: np.round(np.median(m.a1_initial_aggressiveness) * 100, 2),
+                "A2_Initial_Competition_Index": lambda m: np.round(np.median(m.a2_competition_index), 2),
+                "A1_Number": [get_num_bacteria_per_type, [self, Type_a_1]],
+                "A2_Number": [get_num_bacteria_per_type, [self, Type_a_2]]
             }
-        )
-
-        
+        )  
 
 # Computes the minimum distsnce till edge for each bacteria and the ratio of the own type next to it
     def quantify_initial_conditions(self):
@@ -615,12 +616,6 @@ class Microbiome(mesa.Model):
             else:
                 initial_a2 = list(filter(lambda x: isinstance(x, Type_a_1), initial_bacteria))
                 self.a2_competition_index.append(len(initial_a2)/len(initial_bacteria))
-
-# A function that can be called to get all the intial conditions
-    def output_initial_conditions(self):
-
-        return np.mean(self.a1_edge_distance), np.mean(self.a2_edge_distance), np.round(np.median(self.a1_initial_aggressiveness)*100,2), np.round(np.median(self.a2_competition_index),2)
-
         
     def find_free_space(self, max_search_radius):
 
