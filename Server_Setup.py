@@ -83,8 +83,8 @@ canvas_element = mesa.visualization.CanvasGrid(bacteria_portrayal, 25, 25, 500, 
 # Namen der Labels müssen gleich sein wie im DataCollector im model
 chart_element = mesa.visualization.ChartModule(
     [
-        {"Label": "Type_a_1", "Color": COLOR_TYPE_A_1},
-        {"Label": "Type_a_2", "Color": COLOR_TYPE_A_2},
+        {"Label": "A1_Number", "Color": COLOR_TYPE_A_1},
+        {"Label": "A2_Number", "Color": COLOR_TYPE_A_2},
     ]
 )
 
