@@ -3,6 +3,7 @@ import math
 import numpy as np
 import operator
 import random
+import inspect
 
 ### SOIL
 
@@ -43,16 +44,6 @@ class Soil(mesa.Agent):
         self.age += 1
         if self.age % self.refuel_timer:
             self.nutrients = dict.fromkeys(self.nutrients, self.refuel_amount)
-    #    if self.random.random() < 0.001:
-    #    #if self.age % 50 == 0 and self.random.random() < 0.5:
-    #        self.nutrients = dict.fromkeys(self.nutrients, 2)
-    #        possible_postitions = self.model.grid.get_neighborhood(
-    #            self.pos, moore=False, include_center=False, radius=1
-    #        )
-    #        for position in possible_postitions:
-    #            soil = self.model.grid.get_cell_list_contents([position])[0]
-    #            soil.nutrients = dict.fromkeys(soil.nutrients, 1)
-    #    self.nutrients = dict.fromkeys(self.nutrients, 1)
         return
 
 ### GET AVERGE POSITION
@@ -133,7 +124,7 @@ class Type_a_1(mesa.Agent):
         # scouting is done in a moore radius, scouting for stressed_by
         self.scouting_radius = 1
         # when a object of this type is found in the scouting radius, I get stressed
-        self.stressed_by = [Type_a_2]
+        self.stressed_by = [Type_a_2, Type_a_2_2, Type_a_2_3, Type_a_2_4]
         # radius in which the antibiotica will be spread
         self.stress_radius = 1
         # nutrition and antibiotics need to be in the respective dict in the Soil object
@@ -252,11 +243,11 @@ class Type_a_1(mesa.Agent):
             if len(self_contents_bacteria) >= self.max_num_bacteria_in_cell or self.random.random() < self.random_spread_chance: 
                 # If there are free positions for this bacteria type it will push the mother cell there and reproduce the daughter cell into mother's original location
                 # If there is no space avaliable then the viability index gets increased
-                if len(self.model.a1_free_space) > 0:
+                if len(self.model.free_space[f'{Type_a_1}_coordinates']) > 0:
 
                     reproduction_pos = self.pos
-                    self.model.grid.move_agent(self, self.model.a1_free_space[0])
-                    del self.model.a1_free_space[0]
+                    self.model.grid.move_agent(self, self.model.free_space[f'{Type_a_1}_coordinates'][0])
+                    del self.model.free_space[f'{Type_a_1}_coordinates'][0]
 
                     new_bacteria= Type_a_1(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time)
                     self.area = self.area * 0.5
@@ -409,11 +400,11 @@ class Type_a_2(mesa.Agent):
             if len(self_contents_bacteria) >= self.max_num_bacteria_in_cell or self.random.random() < self.random_spread_chance: 
                 # If there are free positions for this bacteria type it will push the mother cell there and reproduce the daughter cell into mother's original location
                 # If there is no space avaliable then the viability index gets increased
-                if len(self.model.a2_free_space) > 0:
+                if len(self.model.free_space[f'{Type_a_2}_coordinates']) > 0:
 
                     reproduction_pos = self.pos
-                    self.model.grid.move_agent(self, self.model.a2_free_space[0])
-                    del self.model.a2_free_space[0]
+                    self.model.grid.move_agent(self, self.model.free_space[f'{Type_a_2}_coordinates'][0])
+                    del self.model.free_space[f'{Type_a_2}_coordinates'][0]
 
                     new_bacteria= Type_a_2(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, False, self.average_aggressiveness)
                     self.area = self.area * 0.5
@@ -578,11 +569,11 @@ class Type_a_2_2(mesa.Agent):
             if len(self_contents_bacteria) >= self.max_num_bacteria_in_cell or self.random.random() < self.random_spread_chance: 
                 # If there are free positions for this bacteria type it will push the mother cell there and reproduce the daughter cell into mother's original location
                 # If there is no space avaliable then the viability index gets increased
-                if len(self.model.a2_free_space) > 0:
+                if len(self.model.free_space[f'{Type_a_2_2}_coordinates']) > 0:
 
                     reproduction_pos = self.pos
-                    self.model.grid.move_agent(self, self.model.a2_free_space[0])
-                    del self.model.a2_free_space[0]
+                    self.model.grid.move_agent(self, self.model.free_space[f'{Type_a_2_2}_coordinates'][0])
+                    del self.model.free_space[f'{Type_a_2_2}_coordinates'][0]
 
                     new_bacteria= Type_a_2_2(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, False, self.average_aggressiveness)
                     self.area = self.area * 0.5
@@ -747,11 +738,11 @@ class Type_a_2_3(mesa.Agent):
             if len(self_contents_bacteria) >= self.max_num_bacteria_in_cell or self.random.random() < self.random_spread_chance: 
                 # If there are free positions for this bacteria type it will push the mother cell there and reproduce the daughter cell into mother's original location
                 # If there is no space avaliable then the viability index gets increased
-                if len(self.model.a2_free_space) > 0:
+                if len(self.model.free_space[f'{Type_a_2_3}_coordinates']) > 0:
 
                     reproduction_pos = self.pos
-                    self.model.grid.move_agent(self, self.model.a2_free_space[0])
-                    del self.model.a2_free_space[0]
+                    self.model.grid.move_agent(self, self.model.free_space[f'{Type_a_2_3}_coordinates'][0])
+                    del self.model.free_space[f'{Type_a_2_3}_coordinates'][0]
 
                     new_bacteria= Type_a_2_3(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, False, self.average_aggressiveness)
                     self.area = self.area * 0.5
@@ -916,11 +907,11 @@ class Type_a_2_4(mesa.Agent):
             if len(self_contents_bacteria) >= self.max_num_bacteria_in_cell or self.random.random() < self.random_spread_chance: 
                 # If there are free positions for this bacteria type it will push the mother cell there and reproduce the daughter cell into mother's original location
                 # If there is no space avaliable then the viability index gets increased
-                if len(self.model.a2_free_space) > 0:
+                if len(self.model.free_space[f'{Type_a_2_4}_coordinates']) > 0:
 
                     reproduction_pos = self.pos
-                    self.model.grid.move_agent(self, self.model.a2_free_space[0])
-                    del self.model.a2_free_space[0]
+                    self.model.grid.move_agent(self, self.model.free_space[f'{Type_a_2_4}_coordinates'][0])
+                    del self.model.free_space[f'{Type_a_2_4}_coordinates'][0]
 
                     new_bacteria= Type_a_2_4(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, False, self.average_aggressiveness)
                     self.area = self.area * 0.5
@@ -980,7 +971,7 @@ class Microbiome(mesa.Model):
     """A model with some number of agents."""
     # EVERYTHING WITH FIVE HASHTAGS IS RELATED TO INITIAL MESA SCAFFOLD AND COULD BE USEFULL IN THE FUTURE
 
-    def __init__(self, num_type_a_1, num_type_a_2 ,is_torus, grid_height, grid_width, immediate_killing, aggressiveness, avrg_viability_time_type_a,# Compulsory inputs for the simulation
+    def __init__(self, num_type_a_1, num_type_a_2, num_type_a_2_2, num_type_a_2_3, num_type_a_2_4, is_torus, grid_height, grid_width, immediate_killing, aggressiveness, avrg_viability_time_type_a,# Compulsory inputs for the simulation
                  avrg_area_type_a = average_bacteria_area): # Variables that have a default value but can be changed
 
         ################################
@@ -1023,24 +1014,6 @@ class Microbiome(mesa.Model):
         self.step_num = 1
         self.directions = ["left", "right", "up", "down"]
 
-        # Type d moves in Swarms
-        ##### self.swarm_direction = []
-        ##### self.swarm_target = []
-
-        ##### REMOVED THE UPPER BOUND FOR POPULATIONS
-
-        ##### self.reproduction_stop_a_1 = False
-        ##### self.reproduction_stop_a_2 = False
-
-        ##### self.reproduction_stop_d = False
-
-
-        ##### for s in range(num_type_d):
-        #####     self.swarm_direction.append(self.random.choice(self.directions))
-        #####     self.swarm_target.append([])
-
-        #self.swarm_move = True
-
         self.grid = mesa.space.MultiGrid(self.grid_width, self.grid_height, is_torus)
         
         # different schedulers can be found here
@@ -1066,7 +1039,7 @@ class Microbiome(mesa.Model):
             self.a1_initial_pos.append((x,y))
             
 
-        # Create Type_a_2"
+        # Create Type_a_2
         self.a2_initial_pos = []
         self.a1_initial_aggressiveness = []
         for i in range(num_type_a_2):
@@ -1079,6 +1052,27 @@ class Microbiome(mesa.Model):
             self.a2_initial_pos.append((x,y))
             self.a1_initial_aggressiveness.append(a.aggressiveness)
 
+        # Create Type_a_2_2
+        for i in range(num_type_a_2_2):
+            x = self.random.randrange(self.grid.width)
+            y = self.random.randrange(self.grid.height)
+            a = Type_a_2_2(self.next_id(), self, (x, y), avrg_area_type_a * 1.1, avrg_viability_time_type_a + 5, immediate_killing, aggressiveness * 1.05)
+            self.schedule.add(a)
+
+        # Create Type_a_2_3
+        for i in range(num_type_a_2_3):
+            x = self.random.randrange(self.grid.width)
+            y = self.random.randrange(self.grid.height)
+            a = Type_a_2_3(self.next_id(), self, (x, y), avrg_area_type_a * 0.9, avrg_viability_time_type_a - 2, immediate_killing, aggressiveness * 0.9)
+            self.schedule.add(a)
+        
+        # Create Type_a_2_4
+        for i in range(num_type_a_2_4):
+            x = self.random.randrange(self.grid.width)
+            y = self.random.randrange(self.grid.height)
+            a = Type_a_2_4(self.next_id(), self, (x, y), avrg_area_type_a * 1.2, avrg_viability_time_type_a + 1, immediate_killing, aggressiveness * 1.11)
+            self.schedule.add(a)
+
         self.initial_conditions = self.quantify_initial_conditions()    
 
         self.datacollector = mesa.DataCollector(
@@ -1088,7 +1082,10 @@ class Microbiome(mesa.Model):
                 "A1_Initial_Aggressiveness": lambda m: np.round(np.median(m.a1_initial_aggressiveness) * 100, 2),
                 "A2_Initial_Competition_Index": lambda m: np.round(np.median(m.a2_competition_index), 2),
                 "A1_Number": [get_num_bacteria_per_type, [self, Type_a_1]],
-                "A2_Number": [get_num_bacteria_per_type, [self, Type_a_2]]
+                "A2_Number": [get_num_bacteria_per_type, [self, Type_a_2]],
+                "A2_2_Number": [get_num_bacteria_per_type, [self, Type_a_2_2]],
+                "A2_3_Number": [get_num_bacteria_per_type, [self, Type_a_2_3]],
+                "A2_4_Number": [get_num_bacteria_per_type, [self, Type_a_2_4]],
             }
         )  
 
@@ -1126,9 +1123,20 @@ class Microbiome(mesa.Model):
         
     def find_free_space(self, max_search_radius):
 
+        classes = inspect.getmembers(
+            inspect.getmodule(self.__class__), inspect.isclass)
+
+        # Filter classes that inherit from Agent but exclude "Soil"
+        agent_classes = [cls for name, cls in classes if issubclass(cls, mesa.Agent) and cls.__name__ != 'Soil']
+
+        # Create a positional list for each bacteria agent
+        positional_dict = {}
+        for agent in agent_classes:
+
+            list_name = f'{agent}_coordinates'
+            positional_dict[list_name] = []
+
         all_coordinates = self.grid.get_neighborhood((0,0), moore = True, include_center = True, radius = max_search_radius)
-        a1_coordinates = []
-        a2_coordinates = []
 
         for a in all_coordinates:
 
@@ -1143,60 +1151,32 @@ class Microbiome(mesa.Model):
 
                 if len(bacteria_neighbors) > 0:
 
-                    a1 = list(filter(lambda x: isinstance(x, Type_a_1), bacteria_neighbors))
-                    a2 = list(filter(lambda x: isinstance(x, Type_a_2), bacteria_neighbors))
+                    max_bacteria_neighbors = 0
+                    main_neighbor =  None
 
-                    if len(a1) > len(a2):
-                        a1_coordinates.append(a)
+                    for agent in agent_classes:
+ 
+                        type_specific_neighbors = list(filter(lambda x: isinstance(x, agent), bacteria_neighbors))
 
-                    else:
-                        a2_coordinates.append(a)
+                        if len(type_specific_neighbors) > max_bacteria_neighbors:
+                    
+                            max_bacteria_neighbors = len(type_specific_neighbors)
+                            main_neighbor = agent
+                    
+                    positional_dict[f'{main_neighbor}_coordinates'].append(a)
 
-        self.random.shuffle(a1_coordinates)
-        self.random.shuffle(a2_coordinates)
+        for key, list in positional_dict.items():
+            self.random.shuffle(list)
+           
                 
-        return a1_coordinates, a2_coordinates
+        return positional_dict
 
 
     def step(self):
         self.step_num += 1
 
         # run agents
-        self.a1_free_space, self.a2_free_space = self.find_free_space(max(self.grid_width, self.grid_height))
+        
+        self.free_space = self.find_free_space(max(self.grid_width, self.grid_height))
         self.datacollector.collect(self)
         self.schedule.step()
-
-        # reset swarm target
-        ##### for idx, target in enumerate(self.swarm_target):
-            # self.swarm_target[idx] = get_average_pos(target)
-        #####    self.swarm_target[idx] = []
-
-
-        # Type_d movement is synchronised
-        ##### if self.step_num % self.swarm_direction_turns == 0:
-        #####     for i in range(len(self.swarm_direction)):
-        #####         self.swarm_direction[i] = self.random.choice(self.directions)
-
-        # decides if type_d moves
-        ##### if self.random.random() < self.swarm_chance_move:
-        #####     self.swarm_move = True
-        ##### else:
-        #####     self.swarm_move = False
-
-        # Stopping reproduction at a certain point for performance reasons
-        ##### if get_num_bacteria_per_type(self, Type_d) > self.type_d_population_limit & self.type_d_population_limit != 0:
-        #####     self.reproduction_stop_d = True
-        ##### else:
-        #####     self.reproduction_stop_d = False
-        
-        ##### REMOVED THE UPPER BOUND FOR POPULATIONS
-
-        ##### if get_num_bacteria_per_type(self, Type_a_1) > self.type_a_population_limit & self.type_a_population_limit != 0:
-        #####     self.reproduction_stop_a_1 = True
-        ##### else:
-        #####     self.reproduction_stop_a_1 = False
-
-        ##### if get_num_bacteria_per_type(self, Type_a_2) > self.type_a_population_limit & self.type_a_population_limit != 0:
-        #####     self.reproduction_stop_a_2 = True
-        ##### else:
-        #####     self.reproduction_stop_a_2 = False    
