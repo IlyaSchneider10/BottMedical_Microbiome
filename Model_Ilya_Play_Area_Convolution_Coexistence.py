@@ -1165,8 +1165,8 @@ class Microbiome(mesa.Model):
                     
                     positional_dict[f'{main_neighbor}_coordinates'].append(a)
 
-        for key, list in positional_dict.items():
-            self.random.shuffle(list)
+        for key, position_list in positional_dict.items():
+            self.random.shuffle(position_list)
            
                 
         return positional_dict
