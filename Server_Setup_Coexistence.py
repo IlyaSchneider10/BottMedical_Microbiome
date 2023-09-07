@@ -25,26 +25,37 @@ def bacteria_portrayal(agent):
     portrayal["Layer"] = 1
     portrayal["Filled"] = "true"
 
-    # set agent color based on savings and loans
+# set agent color based on savings and loans
     if isinstance(agent, Type_a_1):
-    	color = COLOR_TYPE_A_1
+    	color=COLOR_TYPE_A_1
     elif isinstance(agent, Type_a_2):
-        color = COLOR_TYPE_A_2    
-    elif isinstance(agent, Type_a_2_2):
-        color = COLOR_TYPE_A_2_2 
-    elif isinstance(agent, Type_a_2_3):
-        color = COLOR_TYPE_A_2_3
-    elif isinstance(agent, Type_a_2_4):
-        color = COLOR_TYPE_A_2_4
+        color=COLOR_TYPE_A_2    
     # showing the antibiotic type_a_2
+    # elif isinstance(agent, Type_a_2_2):
+    #     color = COLOR_TYPE_A_2_2 
+    # elif isinstance(agent, Type_a_2_3):
+    #     color = COLOR_TYPE_A_2_3
+    # elif isinstance(agent, Type_a_2_4):
+    #     color = COLOR_TYPE_A_2_4
     elif isinstance(agent, Soil):
-        for bacteria_type in ['Type_a_2', 'Type_a_2_2', 'Type_a_2_3', 'Type_a_2_4']:
-            if bacteria_type in agent.antibiotics and agent.antibiotics[bacteria_type] > 0:        
-                portrayal["r"] = 1
-                color="#FF7777"
-                portrayal["Layer"] = 0
-            else:
-                color = "WHITE"
+        if 'Type_a_2' in agent.antibiotics and agent.antibiotics['Type_a_2'] > 0:        
+            portrayal["r"] = 1
+            color="#FF7777"
+            portrayal["Layer"] = 0
+        elif 'Type_a_2_2' in agent.antibiotics and agent.antibiotics['Type_a_2_2'] > 0:        
+            portrayal["r"] = 1
+            color="#FF7777"
+            portrayal["Layer"] = 0
+        elif 'Type_a_2_3' in agent.antibiotics and agent.antibiotics['Type_a_2_3'] > 0:        
+            portrayal["r"] = 1
+            color="#FF7777"
+            portrayal["Layer"] = 0
+        elif 'Type_a_2_4' in agent.antibiotics and agent.antibiotics['Type_a_2_4'] > 0:        
+            portrayal["r"] = 1
+            color="#FF7777"
+            portrayal["Layer"] = 0
+        else:
+            color = "WHITE"
 
     portrayal["Color"] = color
 
