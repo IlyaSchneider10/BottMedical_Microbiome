@@ -9,7 +9,7 @@ from Model_Ilya_Play_Area_Convolution_Coexistence import *
 COLOR_TYPE_A_1 = "#3D4C53"
 
 COLOR_TYPE_A_2 = "#9FBF8C"
-COLOR_TYPE_A_2_2 = "#FFF44F"
+COLOR_TYPE_A_2_2 = "#FF8C00"
 COLOR_TYPE_A_2_3 =  "#AEDFF7"
 COLOR_TYPE_A_2_4 = "#B19CD9"
 
@@ -31,12 +31,12 @@ def bacteria_portrayal(agent):
     elif isinstance(agent, Type_a_2):
         color=COLOR_TYPE_A_2    
     # showing the antibiotic type_a_2
-    # elif isinstance(agent, Type_a_2_2):
-    #     color = COLOR_TYPE_A_2_2 
-    # elif isinstance(agent, Type_a_2_3):
-    #     color = COLOR_TYPE_A_2_3
-    # elif isinstance(agent, Type_a_2_4):
-    #     color = COLOR_TYPE_A_2_4
+    elif isinstance(agent, Type_a_2_2):
+        color = COLOR_TYPE_A_2_2 
+    elif isinstance(agent, Type_a_2_3):
+        color = COLOR_TYPE_A_2_3
+    elif isinstance(agent, Type_a_2_4):
+        color = COLOR_TYPE_A_2_4
     elif isinstance(agent, Soil):
         if 'Type_a_2' in agent.antibiotics and agent.antibiotics['Type_a_2'] > 0:        
             portrayal["r"] = 1
@@ -72,19 +72,19 @@ model_params = {
     ##### ),
     "STATIC_TEXT2": mesa.visualization.StaticText('<br><h4>Type A 1 and Type A 2</h4> Typ A 1 can in proximity to Typ A 2 secrete antibiotica against it.'),
     "num_type_a_1": mesa.visualization.Slider(
-        "Type A 1 strating population", 10, 0, 100, description="Randomly distributed"
+        "Type A 1 strating population", 2, 0, 100, description="Randomly distributed"
     ),
     "num_type_a_2": mesa.visualization.Slider(
-        "Type A 2 strating population", 10, 0, 100, description="Randomly distributed"
+        "Type A 2 strating population", 2, 0, 100, description="Randomly distributed"
     ),
     "num_type_a_2_2": mesa.visualization.Slider(
-        "Type A 2.2 strating population", 10, 0, 100, description="Randomly distributed"
+        "Type A 2.2 strating population", 2, 0, 100, description="Randomly distributed"
     ),
     "num_type_a_2_3": mesa.visualization.Slider(
-        "Type A 2.3 strating population", 10, 0, 100, description="Randomly distributed"
+        "Type A 2.3 strating population", 2, 0, 100, description="Randomly distributed"
     ),
     "num_type_a_2_4": mesa.visualization.Slider(
-        "Type A 2-4 strating population", 10, 0, 100, description="Randomly distributed"
+        "Type A 2-4 strating population", 2, 0, 100, description="Randomly distributed"
     ),
     "STATIC_TEXT3": mesa.visualization.StaticText('<br><h4>Immediate killing</h4> If True the predator kills the pray immediately with a set up agressiveness. If False reduces netto energy of bacteria by a set up agressiveness.'),
     "immediate_killing": mesa.visualization.Checkbox(
@@ -116,6 +116,9 @@ chart_element = mesa.visualization.ChartModule(
     [
         {"Label": "A1_Number", "Color": COLOR_TYPE_A_1},
         {"Label": "A2_Number", "Color": COLOR_TYPE_A_2},
+        {"Label": "A2_2_Number", "Color": COLOR_TYPE_A_2_2},
+        {"Label": "A2_3_Number", "Color": COLOR_TYPE_A_2_3},
+        {"Label": "A2_4_Number", "Color": COLOR_TYPE_A_2_4}
     ]
 )
 
