@@ -973,7 +973,7 @@ class Microbiome(mesa.Model):
     """A model with some number of agents."""
     # EVERYTHING WITH FIVE HASHTAGS IS RELATED TO INITIAL MESA SCAFFOLD AND COULD BE USEFULL IN THE FUTURE
 
-    def __init__(self, num_type_a_1, num_type_a_2, num_type_a_2_2, num_type_a_2_3, num_type_a_2_4, is_torus, grid_height, grid_width, immediate_killing, aggressiveness, avrg_viability_time_type_a,# Compulsory inputs for the simulation
+    def __init__(self, num_type_a_1, num_type_a_2, num_type_a_2_2, num_type_a_2_3, num_type_a_2_4, is_torus, grid_height, grid_width, immediate_killing, aggressiveness, avrg_viability_time_type_a, antibacterial_perturbation = 0, # Compulsory inputs for the simulation
                  avrg_area_type_a = average_bacteria_area): # Variables that have a default value but can be changed
 
         ################################
@@ -983,6 +983,7 @@ class Microbiome(mesa.Model):
         # canvas_element = mesa.visualization.CanvasGrid(bacteria_portrayal, self.grid_width, self.grid_height, 500, 500)
         self.grid_width = grid_width
         self.grid_height = grid_height
+        self.decimal_aggressiveness = aggressiveness
 
         # All used for quantifying the initial conditions
         self.a1_edge_distance = []
@@ -1015,6 +1016,7 @@ class Microbiome(mesa.Model):
         self.current_id = 1
         self.step_num = 1
         self.directions = ["left", "right", "up", "down"]
+        self.perturbation = self.perturbation_time(antibacterial_perturbation)
 
         self.grid = mesa.space.MultiGrid(self.grid_width, self.grid_height, is_torus)
         
@@ -1047,7 +1049,7 @@ class Microbiome(mesa.Model):
         for i in range(num_type_a_2):
             x = self.random.randrange(self.grid.width)
             y = self.random.randrange(self.grid.height)
-            a = Type_a_2(self.next_id(), self, (x, y), avrg_area_type_a, avrg_viability_time_type_a, immediate_killing, aggressiveness)
+            a = Type_a_2(self.next_id(), self, (x, y), avrg_area_type_a, avrg_viability_time_type_a, immediate_killing, self.decimal_aggressiveness)
             self.schedule.add(a)
             # Add the agent to a random grid cell
             self.grid.place_agent(a, (x, y))
@@ -1058,7 +1060,7 @@ class Microbiome(mesa.Model):
         for i in range(num_type_a_2_2):
             x = self.random.randrange(self.grid.width)
             y = self.random.randrange(self.grid.height)
-            a = Type_a_2_2(self.next_id(), self, (x, y), avrg_area_type_a * 1.1, avrg_viability_time_type_a + 4, immediate_killing, aggressiveness * 1.05)
+            a = Type_a_2_2(self.next_id(), self, (x, y), avrg_area_type_a * 1.1, avrg_viability_time_type_a + 4, immediate_killing, self.decimal_aggressiveness * 1.05)
             self.schedule.add(a)
             # Add the agent to a random grid cell
             self.grid.place_agent(a, (x, y))
@@ -1067,7 +1069,7 @@ class Microbiome(mesa.Model):
         for i in range(num_type_a_2_3):
             x = self.random.randrange(self.grid.width)
             y = self.random.randrange(self.grid.height)
-            a = Type_a_2_3(self.next_id(), self, (x, y), avrg_area_type_a * 0.9, avrg_viability_time_type_a - 1, immediate_killing, aggressiveness * 0.9)
+            a = Type_a_2_3(self.next_id(), self, (x, y), avrg_area_type_a * 0.9, avrg_viability_time_type_a - 1, immediate_killing, self.decimal_aggressiveness * 0.9)
             self.schedule.add(a)
             # Add the agent to a random grid cell
             self.grid.place_agent(a, (x, y))
@@ -1076,7 +1078,7 @@ class Microbiome(mesa.Model):
         for i in range(num_type_a_2_4):
             x = self.random.randrange(self.grid.width)
             y = self.random.randrange(self.grid.height)
-            a = Type_a_2_4(self.next_id(), self, (x, y), avrg_area_type_a * 1.1, avrg_viability_time_type_a + 1, immediate_killing, aggressiveness * 1.11)
+            a = Type_a_2_4(self.next_id(), self, (x, y), avrg_area_type_a * 1.1, avrg_viability_time_type_a + 1, immediate_killing, self.decimal_aggressiveness * 1.11)
             self.schedule.add(a)
             # Add the agent to a random grid cell
             self.grid.place_agent(a, (x, y))
@@ -1178,10 +1180,47 @@ class Microbiome(mesa.Model):
            
                 
         return positional_dict
+    
+    def perturbation_time(self, antibacterial_perturbation):
+        
+        if antibacterial_perturbation == 0:
+            return None
+        
+        else:
+            perturbation_time_point = random.sample(range(1, 100), antibacterial_perturbation) 
+            return perturbation_time_point
+        
+    def perturb(self):
+
+        perturbation_radius = random.randint(1, max(self.grid_height, self.grid_width)/5)
+        perturbation_x = random.randint(0, max(self.grid_height, self.grid_width)-1)
+        perturbation_y = random.randint(0, max(self.grid_height, self.grid_width)-1)
+
+        perturbation_neighborhood = self.grid.get_neighborhood(
+            (perturbation_x, perturbation_y), moore=True, include_center=True, radius=perturbation_radius
+        )
+
+        # add antibiotica up
+        for cell in perturbation_neighborhood:
+            soil = self.grid.get_cell_list_contents([cell])[0]
+
+            # create or add antibiotica
+            stressing_types = ["Type_a_2", "Type_a_2_2", "Type_a_2_3", "Type_a_2_4"]
+            for s in stressing_types:
+                if s in soil.antibiotics:
+                    soil.antibiotics[s] += 1
+                else:
+                    soil.antibiotics[s] = 1 
 
 
     def step(self):
         self.step_num += 1
+
+        if self.perturbation is not None:
+            for t in self.perturbation:
+                if t == self.step_num:
+                    self.perturbation.remove(t)
+                    self.perturb()
 
         # run agents
         

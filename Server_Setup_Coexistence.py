@@ -72,23 +72,23 @@ model_params = {
     ##### ),
     "STATIC_TEXT2": mesa.visualization.StaticText('<br><h4>Type A 1 and Type A 2</h4> Typ A 1 can in proximity to Typ A 2 secrete antibiotica against it.'),
     "num_type_a_1": mesa.visualization.Slider(
-        "Type A 1 strating population", 2, 0, 100, description="Randomly distributed"
+        "Type A 1 strating population", 0, 0, 100, description="Randomly distributed"
     ),
     "num_type_a_2": mesa.visualization.Slider(
-        "Type A 2 strating population", 2, 0, 100, description="Randomly distributed"
+        "Type A 2 strating population", 20, 0, 100, description="Randomly distributed"
     ),
     "num_type_a_2_2": mesa.visualization.Slider(
-        "Type A 2.2 strating population", 2, 0, 100, description="Randomly distributed"
+        "Type A 2.2 strating population", 0, 0, 100, description="Randomly distributed"
     ),
     "num_type_a_2_3": mesa.visualization.Slider(
-        "Type A 2.3 strating population", 2, 0, 100, description="Randomly distributed"
+        "Type A 2.3 strating population", 0, 0, 100, description="Randomly distributed"
     ),
     "num_type_a_2_4": mesa.visualization.Slider(
-        "Type A 2-4 strating population", 2, 0, 100, description="Randomly distributed"
+        "Type A 2-4 strating population", 0, 0, 100, description="Randomly distributed"
     ),
     "STATIC_TEXT3": mesa.visualization.StaticText('<br><h4>Immediate killing</h4> If True the predator kills the pray immediately with a set up agressiveness. If False reduces netto energy of bacteria by a set up agressiveness.'),
     "immediate_killing": mesa.visualization.Checkbox(
-        "Immediate killing", False, description=""
+        "Immediate killing", True, description=""
     ),
     "STATIC_TEXT5": mesa.visualization.StaticText('<br><h4>Grid</h4> Torus grid connects the opposite sides of the simualtion grid.'),
     "is_torus": mesa.visualization.Checkbox(
@@ -101,10 +101,13 @@ model_params = {
         "Grid height", 25, 0, 100, description=""
     ),
     "aggressiveness": mesa.visualization.Slider(
-        "Aggressiveness", 0.01, 0.0, 1.0, description=""
+        "Aggressiveness", 100, 0.0, 100, description=""
     ),
     "avrg_viability_time_type_a": mesa.visualization.Slider(
         "avrg_viability_time_type_a", 35, 0.0, 100, description=""
+    ),
+    "antibacterial_perturbation": mesa.visualization.Slider(
+        "antibacterial_perturbation", 10, 0.0, 100, description=""
     )
 }
 
