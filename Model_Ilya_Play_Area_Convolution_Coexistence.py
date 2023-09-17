@@ -116,7 +116,7 @@ class Type_a_1(mesa.Agent):
         # acts as health of the bacteria
         ##### self.sturdiness = 1
         # limits the number of bacteria in a single cell for performance and better spreading
-        self.max_num_bacteria_in_cell = 1
+        self.max_num_bacteria_in_cell = 2
         # if no cell with less than self.max_num_bacteria_in_cell is found, reproduction will not take place
         self.reproduction_radius = 1
         # chance to spread when self.max_num_bacteria_in_cell is not reached, to fasten the spread
@@ -198,12 +198,10 @@ class Type_a_1(mesa.Agent):
                 soil = self.model.grid.get_cell_list_contents([cell])[0]
 
                 # create or add antibiotica
-                stressing_types = ["Type_a_2", "Type_a_2_2", "Type_a_2_3", "Type_a_2_4"]
-                for s in stressing_types:
-                    if s in soil.antibiotics:
-                        soil.antibiotics[s] += 1
-                    else:
-                        soil.antibiotics[s] = 1 
+                if 'Type_a_2_X' in soil.antibiotics:
+                    soil.antibiotics['Type_a_2_X'] += 1
+                else:
+                    soil.antibiotics['Type_a_2_X'] = 1
 
 
     # eat nutrients from soil    
@@ -321,7 +319,7 @@ class Type_a_2(mesa.Agent):
         # acts as health of the bacteria
         ##### self.sturdiness = 1
         # limits the number of bacteria in a single cell for performance and better spreading
-        self.max_num_bacteria_in_cell = 1
+        self.max_num_bacteria_in_cell = 2
         # if no cell with less than self.max_num_bacteria_in_cell is found, reproduction will not take place
         self.reproduction_radius = 1
         # chance to spread when self.max_num_bacteria_in_cell is not reached, to fasten the spread
@@ -331,7 +329,7 @@ class Type_a_2(mesa.Agent):
         ##### self.spread_in_antibiotics = True ##### Used to be False
         # nutrition and antibiotics need to be in the respective dict in the Soil object
         self.nutrition_list = ["Type_a_food"]
-        self.antibiotics_list = ["Type_a_2"] # is created dynamically by type_a_1
+        self.antibiotics_list = ["Type_a_2_X"] # is created dynamically by type_a_1
         
         ################################
         ################################
@@ -360,37 +358,36 @@ class Type_a_2(mesa.Agent):
     def eat(self):
         # get soil
         self_contents = self.model.grid.get_cell_list_contents([self.pos])
-        soil = list(filter(lambda x: isinstance(x, Soil), self_contents))
-        for soil_element in soil:
+        soil = list(filter(lambda x: isinstance(x, Soil), self_contents))[0]
 
-            # if there are nutrients, first nutrient on nutrition_list gets consumed
-            for nutrient in self.nutrition_list:
-                # look if consumable nutrients in soil
-                if nutrient in soil_element.nutrients and soil_element.nutrients[nutrient] > 0:
-                
-                    self.max_possible_consumption = self.avaliability * soil_element.nutrients[nutrient] # the biggest amount each bacterium can consume
-                    self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
-                    if self.max_possible_consumption >= self.max_individual_uptake:
-                        actual_consumption = self.max_individual_uptake # make sure that bacteria does not consume more nutrients than its individual consumption upper bounf
-                    else: 
-                        actual_consumption = self.max_possible_consumption
-
-                    soil_element.nutrients[nutrient] -= actual_consumption
-                    self.energy_netto = self.energy_yield * actual_consumption  - self.maintenance * self.area # energy coming from the consumed nutrients - the energy that bacteria needs to survive
-                    
+        # if there are nutrients, first nutrient on nutrition_list gets consumed
+        for nutrient in self.nutrition_list:
+            # look if consumable nutrients in soil
+            if nutrient in soil.nutrients and soil.nutrients[nutrient] > 0:
             
-                    for antibiotic in self.antibiotics_list:
-                        if antibiotic in soil_element.antibiotics and soil_element.antibiotics[antibiotic] > 0 and self.immediate_killing == False:
-                            self.energy_netto -= abs(self.energy_netto) * self.aggressiveness 
-                            self.viability_index += 1
-                            soil_element.antibiotics[antibiotic] -= 1
+                self.max_possible_consumption = self.avaliability * soil.nutrients[nutrient] # the biggest amount each bacterium can consume
+                self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
+                if self.max_possible_consumption >= self.max_individual_uptake:
+                    actual_consumption = self.max_individual_uptake # make sure that bacteria does not consume more nutrients than its individual consumption upper bounf
+                else: 
+                    actual_consumption = self.max_possible_consumption
 
-
-                    if self.energy_netto >= 0:
-                        self.area += self.energy_netto * 0.5 # Reference paper. If there is some avalaible energy, bacterium will convert half of it into area
-                    else: 
-                        self.area = 0.9 * self.area # Reference paper. If the netto energy balance is negative -> bacteria does not cover its maintenance -> shrinks 10%
+                soil.nutrients[nutrient] -= actual_consumption
+                self.energy_netto = self.energy_yield * actual_consumption  - self.maintenance * self.area # energy coming from the consumed nutrients - the energy that bacteria needs to survive
+                
+        
+                for antibiotic in self.antibiotics_list:
+                    if antibiotic in soil.antibiotics and soil.antibiotics[antibiotic] > 0 and self.immediate_killing == False:
+                        self.energy_netto -= abs(self.energy_netto) * self.aggressiveness 
                         self.viability_index += 1
+                        soil.antibiotics[antibiotic] -= 1
+
+
+                if self.energy_netto >= 0:
+                    self.area += self.energy_netto * 0.5 # Reference paper. If there is some avalaible energy, bacterium will convert half of it into area
+                else: 
+                    self.area = 0.9 * self.area # Reference paper. If the netto energy balance is negative -> bacteria does not cover its maintenance -> shrinks 10%
+                    self.viability_index += 1
             
     def reproduce(self):
 
@@ -434,28 +431,26 @@ class Type_a_2(mesa.Agent):
         else:
             self.viability_index += 1
 
-
     def die(self):
-        
-        if self.immediate_killing == True and self.random.random() < self.aggressiveness:
-            self_contents = self.model.grid.get_cell_list_contents([self.pos])
-            soil = list(filter(lambda x: isinstance(x, Soil), self_contents))
-            for soil_element in soil:
-                # soil = self.model.grid.get_cell_list_contents([self.pos])[0]
-                for antibiotic in self.antibiotics_list:
-                    if antibiotic in soil_element.antibiotics and soil_element.antibiotics[antibiotic] > 0:
-                        
-                        # die                
-                        self.model.grid.remove_agent(self)
-                        self.model.schedule.remove(self)
-                        
-                        soil_element.antibiotics[antibiotic] -= 1
 
-        elif (self.area < self.min_area) or (self.viability_index >= self.max_viability_time) or (self.random.random() < self.dying_chance):
+             if (self.immediate_killing == True) and (self.random.random() < self.aggressiveness):
+                    
+                    self_contents = self.model.grid.get_cell_list_contents([self.pos])
+                    soil = list(filter(lambda x: isinstance(x, Soil), self_contents))[0]
+                    for antibiotic in self.antibiotics_list:
+                        if antibiotic in soil.antibiotics and soil.antibiotics[antibiotic] > 0:
+                                soil.antibiotics[antibiotic] -= 1
+                                immediate_kill = True
+                        else:
+                            immediate_kill = False
+             else:
+                immediate_kill = False
+                  
+             if (self.area < self.min_area) or (self.viability_index >= self.max_viability_time) or (self.random.random() < self.dying_chance) or (immediate_kill == True):
                 
-            # die                
-            self.model.grid.remove_agent(self)
-            self.model.schedule.remove(self)
+                # die                
+                self.model.grid.remove_agent(self)
+                self.model.schedule.remove(self)
 
 class Type_a_2_2(mesa.Agent):
 
@@ -494,7 +489,7 @@ class Type_a_2_2(mesa.Agent):
         # acts as health of the bacteria
         ##### self.sturdiness = 1
         # limits the number of bacteria in a single cell for performance and better spreading
-        self.max_num_bacteria_in_cell = 1
+        self.max_num_bacteria_in_cell = 2
         # if no cell with less than self.max_num_bacteria_in_cell is found, reproduction will not take place
         self.reproduction_radius = 1
         # chance to spread when self.max_num_bacteria_in_cell is not reached, to fasten the spread
@@ -504,7 +499,7 @@ class Type_a_2_2(mesa.Agent):
         ##### self.spread_in_antibiotics = True ##### Used to be False
         # nutrition and antibiotics need to be in the respective dict in the Soil object
         self.nutrition_list = ["Type_a_food"]
-        self.antibiotics_list = ["Type_a_2_2"] # is created dynamically by type_a_1
+        self.antibiotics_list = ["Type_a_2_X"] # is created dynamically by type_a_1
         
         ################################
         ################################
@@ -532,13 +527,14 @@ class Type_a_2_2(mesa.Agent):
     # eat nutrients from soil   
     def eat(self):
         # get soil
-        soil = self.model.grid.get_cell_list_contents([self.pos])[0]
+        self_contents = self.model.grid.get_cell_list_contents([self.pos])
+        soil = list(filter(lambda x: isinstance(x, Soil), self_contents))[0]
 
         # if there are nutrients, first nutrient on nutrition_list gets consumed
         for nutrient in self.nutrition_list:
             # look if consumable nutrients in soil
             if nutrient in soil.nutrients and soil.nutrients[nutrient] > 0:
-               
+            
                 self.max_possible_consumption = self.avaliability * soil.nutrients[nutrient] # the biggest amount each bacterium can consume
                 self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
                 if self.max_possible_consumption >= self.max_individual_uptake:
@@ -560,7 +556,7 @@ class Type_a_2_2(mesa.Agent):
                 if self.energy_netto >= 0:
                     self.area += self.energy_netto * 0.5 # Reference paper. If there is some avalaible energy, bacterium will convert half of it into area
                 else: 
-                    self.area = 0.95 * self.area # Reference paper. If the netto energy balance is negative -> bacteria does not cover its maintenance -> shrinks 10%
+                    self.area = 0.9 * self.area # Reference paper. If the netto energy balance is negative -> bacteria does not cover its maintenance -> shrinks 10%
                     self.viability_index += 1
             
     def reproduce(self):
@@ -605,12 +601,12 @@ class Type_a_2_2(mesa.Agent):
         else:
             self.viability_index += 1
 
-
     def die(self):
 
              if (self.immediate_killing == True) and (self.random.random() < self.aggressiveness):
                     
-                    soil = self.model.grid.get_cell_list_contents([self.pos])[0]
+                    self_contents = self.model.grid.get_cell_list_contents([self.pos])
+                    soil = list(filter(lambda x: isinstance(x, Soil), self_contents))[0]
                     for antibiotic in self.antibiotics_list:
                         if antibiotic in soil.antibiotics and soil.antibiotics[antibiotic] > 0:
                                 soil.antibiotics[antibiotic] -= 1
@@ -663,7 +659,7 @@ class Type_a_2_3(mesa.Agent):
         # acts as health of the bacteria
         ##### self.sturdiness = 1
         # limits the number of bacteria in a single cell for performance and better spreading
-        self.max_num_bacteria_in_cell = 1
+        self.max_num_bacteria_in_cell = 2
         # if no cell with less than self.max_num_bacteria_in_cell is found, reproduction will not take place
         self.reproduction_radius = 1
         # chance to spread when self.max_num_bacteria_in_cell is not reached, to fasten the spread
@@ -673,7 +669,7 @@ class Type_a_2_3(mesa.Agent):
         ##### self.spread_in_antibiotics = True ##### Used to be False
         # nutrition and antibiotics need to be in the respective dict in the Soil object
         self.nutrition_list = ["Type_a_food"]
-        self.antibiotics_list = ["Type_a_2_3"] # is created dynamically by type_a_1
+        self.antibiotics_list = ["Type_a_2_X"] # is created dynamically by type_a_1
         
         ################################
         ################################
@@ -701,13 +697,14 @@ class Type_a_2_3(mesa.Agent):
     # eat nutrients from soil   
     def eat(self):
         # get soil
-        soil = self.model.grid.get_cell_list_contents([self.pos])[0]
+        self_contents = self.model.grid.get_cell_list_contents([self.pos])
+        soil = list(filter(lambda x: isinstance(x, Soil), self_contents))[0]
 
         # if there are nutrients, first nutrient on nutrition_list gets consumed
         for nutrient in self.nutrition_list:
             # look if consumable nutrients in soil
             if nutrient in soil.nutrients and soil.nutrients[nutrient] > 0:
-               
+            
                 self.max_possible_consumption = self.avaliability * soil.nutrients[nutrient] # the biggest amount each bacterium can consume
                 self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
                 if self.max_possible_consumption >= self.max_individual_uptake:
@@ -774,12 +771,12 @@ class Type_a_2_3(mesa.Agent):
         else:
             self.viability_index += 1
 
-
     def die(self):
 
              if (self.immediate_killing == True) and (self.random.random() < self.aggressiveness):
                     
-                    soil = self.model.grid.get_cell_list_contents([self.pos])[0]
+                    self_contents = self.model.grid.get_cell_list_contents([self.pos])
+                    soil = list(filter(lambda x: isinstance(x, Soil), self_contents))[0]
                     for antibiotic in self.antibiotics_list:
                         if antibiotic in soil.antibiotics and soil.antibiotics[antibiotic] > 0:
                                 soil.antibiotics[antibiotic] -= 1
@@ -832,7 +829,7 @@ class Type_a_2_4(mesa.Agent):
         # acts as health of the bacteria
         ##### self.sturdiness = 1
         # limits the number of bacteria in a single cell for performance and better spreading
-        self.max_num_bacteria_in_cell = 1
+        self.max_num_bacteria_in_cell = 2
         # if no cell with less than self.max_num_bacteria_in_cell is found, reproduction will not take place
         self.reproduction_radius = 1
         # chance to spread when self.max_num_bacteria_in_cell is not reached, to fasten the spread
@@ -842,7 +839,7 @@ class Type_a_2_4(mesa.Agent):
         ##### self.spread_in_antibiotics = True ##### Used to be False
         # nutrition and antibiotics need to be in the respective dict in the Soil object
         self.nutrition_list = ["Type_a_food"]
-        self.antibiotics_list = ["Type_a_2_4"] # is created dynamically by type_a_1
+        self.antibiotics_list = ["Type_a_2_X"] # is created dynamically by type_a_1
         
         ################################
         ################################
@@ -870,13 +867,14 @@ class Type_a_2_4(mesa.Agent):
     # eat nutrients from soil   
     def eat(self):
         # get soil
-        soil = self.model.grid.get_cell_list_contents([self.pos])[0]
+        self_contents = self.model.grid.get_cell_list_contents([self.pos])
+        soil = list(filter(lambda x: isinstance(x, Soil), self_contents))[0]
 
         # if there are nutrients, first nutrient on nutrition_list gets consumed
         for nutrient in self.nutrition_list:
             # look if consumable nutrients in soil
             if nutrient in soil.nutrients and soil.nutrients[nutrient] > 0:
-               
+            
                 self.max_possible_consumption = self.avaliability * soil.nutrients[nutrient] # the biggest amount each bacterium can consume
                 self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
                 if self.max_possible_consumption >= self.max_individual_uptake:
@@ -898,7 +896,7 @@ class Type_a_2_4(mesa.Agent):
                 if self.energy_netto >= 0:
                     self.area += self.energy_netto * 0.5 # Reference paper. If there is some avalaible energy, bacterium will convert half of it into area
                 else: 
-                    self.area = 0.75 * self.area # Reference paper. If the netto energy balance is negative -> bacteria does not cover its maintenance -> shrinks 10%
+                    self.area = 0.9 * self.area # Reference paper. If the netto energy balance is negative -> bacteria does not cover its maintenance -> shrinks 10%
                     self.viability_index += 1
             
     def reproduce(self):
@@ -943,12 +941,12 @@ class Type_a_2_4(mesa.Agent):
         else:
             self.viability_index += 1
 
-
     def die(self):
 
              if (self.immediate_killing == True) and (self.random.random() < self.aggressiveness):
                     
-                    soil = self.model.grid.get_cell_list_contents([self.pos])[0]
+                    self_contents = self.model.grid.get_cell_list_contents([self.pos])
+                    soil = list(filter(lambda x: isinstance(x, Soil), self_contents))[0]
                     for antibiotic in self.antibiotics_list:
                         if antibiotic in soil.antibiotics and soil.antibiotics[antibiotic] > 0:
                                 soil.antibiotics[antibiotic] -= 1
@@ -977,7 +975,7 @@ class Microbiome(mesa.Model):
     """A model with some number of agents."""
     # EVERYTHING WITH FIVE HASHTAGS IS RELATED TO INITIAL MESA SCAFFOLD AND COULD BE USEFULL IN THE FUTURE
 
-    def __init__(self, num_type_a_1, num_type_a_2, num_type_a_2_2, num_type_a_2_3, num_type_a_2_4, is_torus, grid_height, grid_width, immediate_killing, aggressiveness, avrg_viability_time_type_a, antibacterial_perturbation = 0, # Compulsory inputs for the simulation
+    def __init__(self, num_type_a_1, num_type_a_2, num_type_a_2_2, num_type_a_2_3, num_type_a_2_4, is_torus, grid_height, grid_width, immediate_killing, aggressiveness, avrg_viability_time_type_a, antibacterial_perturbation_number = 0, antibacterial_perturbation_time_frame = 0, # Compulsory inputs for the simulation
                  avrg_area_type_a = average_bacteria_area): # Variables that have a default value but can be changed
 
         ################################
@@ -1020,7 +1018,8 @@ class Microbiome(mesa.Model):
         self.current_id = 1
         self.step_num = 1
         self.directions = ["left", "right", "up", "down"]
-        self.perturbation = self.perturbation_time(antibacterial_perturbation)
+        self.antibacterial_perturbation_time_frame = antibacterial_perturbation_time_frame
+        self.perturbation = self.perturbation_time(antibacterial_perturbation_number)
 
         self.grid = mesa.space.MultiGrid(self.grid_width, self.grid_height, is_torus)
         
@@ -1156,9 +1155,10 @@ class Microbiome(mesa.Model):
 
             contents = self.grid.get_cell_list_contents(a)
             bacteria_contents = list(filter(lambda x: not isinstance(x, Soil), contents))
+            #soil = list(filter(lambda x: isinstance(x, Soil), contents))[0]
             free_space_avaliable = len(bacteria_contents) < self.max_num_bacteria_in_cell
 
-            if free_space_avaliable:
+            if free_space_avaliable: #and len(soil.antibiotics) == 0
                 
                 neighbors = self.grid.get_neighbors(a, moore =  True, include_center = False, radius = 1)
                 bacteria_neighbors = list(filter(lambda x: not isinstance(x, Soil), neighbors))
@@ -1191,7 +1191,7 @@ class Microbiome(mesa.Model):
             return None
         
         else:
-            perturbation_time_point = random.sample(range(1, 11), antibacterial_perturbation) 
+            perturbation_time_point = random.sample(range(1, self.antibacterial_perturbation_time_frame), antibacterial_perturbation) 
             return perturbation_time_point
         
     def perturb(self):
@@ -1204,19 +1204,24 @@ class Microbiome(mesa.Model):
             (perturbation_x, perturbation_y), moore=True, include_center=True, radius=perturbation_radius
         )
 
-        # add antibiotica up
+        # add antibiotica
         for cell in perturbation_neighborhood:
-            self_contents = self.grid.get_cell_list_contents(cell)
-            soil = list(filter(lambda x: isinstance(x, Soil), self_contents))
-            for soil_element in soil:
 
-                # create or add antibiotica
-                stressing_types = ["Type_a_2", "Type_a_2_2", "Type_a_2_3", "Type_a_2_4"]
-                for s in stressing_types:
-                    if s in soil_element.antibiotics:
-                        soil_element.antibiotics[s] += 1
-                    else:
-                        soil_element.antibiotics[s] = 1 
+            self_contents = self.grid.get_cell_list_contents(cell)
+            bacteria_contents = list(filter(lambda x: not isinstance(x, Soil), self_contents))
+            soil = list(filter(lambda x: isinstance(x, Soil), self_contents))[0]
+
+            # create or add antibiotica
+            if 'Type_a_2_X' in soil.antibiotics:
+                soil.antibiotics['Type_a_2_X'] += 1
+            else:
+                soil.antibiotics['Type_a_2_X'] = 1
+
+            for bacteria in bacteria_contents:
+
+                if self.random.random() < self.decimal_aggressiveness:
+                    self.grid.remove_agent(bacteria)
+                    self.schedule.remove(bacteria)     
 
     def step(self):
         self.step_num += 1

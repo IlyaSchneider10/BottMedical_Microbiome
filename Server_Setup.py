@@ -70,7 +70,7 @@ model_params = {
         "Grid height", 25, 0, 100, description=""
     ),
     "aggressiveness": mesa.visualization.Slider(
-        "Aggressiveness", 0.01, 0.0, 1.0, description=""
+        "Aggressiveness", 0.75, 0.0, 1.0, description=""
     ),
     "avrg_viability_time_type_a": mesa.visualization.Slider(
         "avrg_viability_time_type_a", 35, 0.0, 100, description=""

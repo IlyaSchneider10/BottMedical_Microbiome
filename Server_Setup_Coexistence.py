@@ -30,7 +30,6 @@ def bacteria_portrayal(agent):
     	color=COLOR_TYPE_A_1
     elif isinstance(agent, Type_a_2):
         color=COLOR_TYPE_A_2    
-    # showing the antibiotic type_a_2
     elif isinstance(agent, Type_a_2_2):
         color = COLOR_TYPE_A_2_2 
     elif isinstance(agent, Type_a_2_3):
@@ -38,21 +37,9 @@ def bacteria_portrayal(agent):
     elif isinstance(agent, Type_a_2_4):
         color = COLOR_TYPE_A_2_4
     elif isinstance(agent, Soil):
-        if 'Type_a_2' in agent.antibiotics and agent.antibiotics['Type_a_2'] > 0:        
+        if 'Type_a_2_X' in agent.antibiotics and agent.antibiotics['Type_a_2_X'] > 0:        
             portrayal["r"] = 1
-            color="#FF7777"
-            portrayal["Layer"] = 0
-        elif 'Type_a_2_2' in agent.antibiotics and agent.antibiotics['Type_a_2_2'] > 0:        
-            portrayal["r"] = 1
-            color="#FF7777"
-            portrayal["Layer"] = 0
-        elif 'Type_a_2_3' in agent.antibiotics and agent.antibiotics['Type_a_2_3'] > 0:        
-            portrayal["r"] = 1
-            color="#FF7777"
-            portrayal["Layer"] = 0
-        elif 'Type_a_2_4' in agent.antibiotics and agent.antibiotics['Type_a_2_4'] > 0:        
-            portrayal["r"] = 1
-            color="#FF7777"
+            color="#F5C3C2"
             portrayal["Layer"] = 0
         else:
             color = "WHITE"
@@ -72,7 +59,7 @@ model_params = {
     ##### ),
     "STATIC_TEXT2": mesa.visualization.StaticText('<br><h4>Type A 1 and Type A 2</h4> Typ A 1 can in proximity to Typ A 2 secrete antibiotica against it.'),
     "num_type_a_1": mesa.visualization.Slider(
-        "Type A 1 strating population", 0, 0, 100, description="Randomly distributed"
+        "Type A 1 strating population", 10, 0, 100, description="Randomly distributed"
     ),
     "num_type_a_2": mesa.visualization.Slider(
         "Type A 2 strating population", 20, 0, 100, description="Randomly distributed"
@@ -106,8 +93,11 @@ model_params = {
     "avrg_viability_time_type_a": mesa.visualization.Slider(
         "avrg_viability_time_type_a", 35, 0.0, 100, description=""
     ),
-    "antibacterial_perturbation": mesa.visualization.Slider(
-        "antibacterial_perturbation", 10, 0.0, 100, description=""
+    "antibacterial_perturbation_number": mesa.visualization.Slider(
+        "antibacterial_perturbation_number", 0, 0.0, 25, description=""
+    ),
+    "antibacterial_perturbation_time_frame": mesa.visualization.Slider(
+        "antibacterial_perturbation_time_frame", 0, 0.0, 300, description=""
     )
 }
 
