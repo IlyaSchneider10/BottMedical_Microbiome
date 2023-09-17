@@ -407,7 +407,7 @@ class Type_a_2(mesa.Agent):
                     self.model.grid.move_agent(self, self.model.free_space[f'{Type_a_2}_coordinates'][0])
                     del self.model.free_space[f'{Type_a_2}_coordinates'][0]
 
-                    new_bacteria= Type_a_2(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, False, self.average_aggressiveness)
+                    new_bacteria= Type_a_2(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, self.immediate_killing, self.average_aggressiveness)
                     self.area = self.area * 0.5
                     self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
         
@@ -421,7 +421,7 @@ class Type_a_2(mesa.Agent):
             else:
 
                 reproduction_pos = self.pos
-                new_bacteria= Type_a_2(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, False, self.average_aggressiveness)
+                new_bacteria= Type_a_2(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, self.immediate_killing, self.average_aggressiveness)
                 self.area = self.area * 0.5
                 self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
         
@@ -577,7 +577,7 @@ class Type_a_2_2(mesa.Agent):
                     self.model.grid.move_agent(self, self.model.free_space[f'{Type_a_2_2}_coordinates'][0])
                     del self.model.free_space[f'{Type_a_2_2}_coordinates'][0]
 
-                    new_bacteria= Type_a_2_2(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, False, self.average_aggressiveness)
+                    new_bacteria= Type_a_2_2(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, self.immediate_killing, self.average_aggressiveness)
                     self.area = self.area * 0.5
                     self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
         
@@ -591,7 +591,7 @@ class Type_a_2_2(mesa.Agent):
             else:
 
                 reproduction_pos = self.pos
-                new_bacteria= Type_a_2_2(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, False, self.average_aggressiveness)
+                new_bacteria= Type_a_2_2(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, self.immediate_killing, self.average_aggressiveness)
                 self.area = self.area * 0.5
                 self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
         
@@ -747,7 +747,7 @@ class Type_a_2_3(mesa.Agent):
                     self.model.grid.move_agent(self, self.model.free_space[f'{Type_a_2_3}_coordinates'][0])
                     del self.model.free_space[f'{Type_a_2_3}_coordinates'][0]
 
-                    new_bacteria= Type_a_2_3(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, False, self.average_aggressiveness)
+                    new_bacteria= Type_a_2_3(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, self.immediate_killing, self.average_aggressiveness)
                     self.area = self.area * 0.5
                     self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
         
@@ -761,7 +761,7 @@ class Type_a_2_3(mesa.Agent):
             else:
 
                 reproduction_pos = self.pos
-                new_bacteria= Type_a_2_3(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, False, self.average_aggressiveness)
+                new_bacteria= Type_a_2_3(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, self.immediate_killing, self.average_aggressiveness)
                 self.area = self.area * 0.5
                 self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
         
@@ -917,7 +917,7 @@ class Type_a_2_4(mesa.Agent):
                     self.model.grid.move_agent(self, self.model.free_space[f'{Type_a_2_4}_coordinates'][0])
                     del self.model.free_space[f'{Type_a_2_4}_coordinates'][0]
 
-                    new_bacteria= Type_a_2_4(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, False, self.average_aggressiveness)
+                    new_bacteria= Type_a_2_4(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, self.immediate_killing, self.average_aggressiveness)
                     self.area = self.area * 0.5
                     self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
         
@@ -931,7 +931,7 @@ class Type_a_2_4(mesa.Agent):
             else:
 
                 reproduction_pos = self.pos
-                new_bacteria= Type_a_2_4(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, False, self.average_aggressiveness)
+                new_bacteria= Type_a_2_4(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, self.immediate_killing, self.average_aggressiveness)
                 self.area = self.area * 0.5
                 self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
         
