@@ -37,11 +37,7 @@ def bacteria_portrayal(agent):
     elif isinstance(agent, Type_a_2_4):
         color = COLOR_TYPE_A_2_4
     elif isinstance(agent, Soil):
-        if 'Type_a_X' in agent.antibiotics and agent.antibiotics['Type_a_X'] > 0:        
-            portrayal["r"] = 1
-            color = "#FDAB9F" 
-            portrayal["Layer"] = 0
-        elif 'Type_a_2_X' in agent.antibiotics and agent.antibiotics['Type_a_2_X'] > 0:        
+        if 'Type_a_2_X' in agent.antibiotics and agent.antibiotics['Type_a_2_X'] > 0:        
             portrayal["r"] = 1
             color = "#F5C3C2"
             portrayal["Layer"] = 0

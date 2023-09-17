@@ -433,24 +433,21 @@ class Type_a_2(mesa.Agent):
 
     def die(self):
 
-             if (self.immediate_killing == True) and (self.random.random() < self.aggressiveness):
-                    
-                    self_contents = self.model.grid.get_cell_list_contents([self.pos])
-                    soil = list(filter(lambda x: isinstance(x, Soil), self_contents))[0]
-                    for antibiotic in self.antibiotics_list:
-                        if antibiotic in soil.antibiotics and soil.antibiotics[antibiotic] > 0:
-                                soil.antibiotics[antibiotic] -= 1
-                                immediate_kill = True
-                        else:
-                            immediate_kill = False
-             else:
-                immediate_kill = False
-                  
-             if (self.area < self.min_area) or (self.viability_index >= self.max_viability_time) or (self.random.random() < self.dying_chance) or (immediate_kill == True):
+        if (self.area < self.min_area) or (self.viability_index >= self.max_viability_time) or (self.random.random() < self.dying_chance):
+            
+            # die                
+            self.model.grid.remove_agent(self)
+            self.model.schedule.remove(self)
+
+        elif (self.immediate_killing == True) and (self.random.random() < self.aggressiveness):
                 
-                # die                
-                self.model.grid.remove_agent(self)
-                self.model.schedule.remove(self)
+            self_contents = self.model.grid.get_cell_list_contents([self.pos])
+            soil = list(filter(lambda x: isinstance(x, Soil), self_contents))[0]
+            for antibiotic in self.antibiotics_list:
+                if antibiotic in soil.antibiotics and soil.antibiotics[antibiotic] > 0:
+                    soil.antibiotics[antibiotic] -= 1
+                    self.model.grid.remove_agent(self)
+                    self.model.schedule.remove(self)
 
 class Type_a_2_2(mesa.Agent):
 
@@ -603,24 +600,21 @@ class Type_a_2_2(mesa.Agent):
 
     def die(self):
 
-             if (self.immediate_killing == True) and (self.random.random() < self.aggressiveness):
-                    
-                    self_contents = self.model.grid.get_cell_list_contents([self.pos])
-                    soil = list(filter(lambda x: isinstance(x, Soil), self_contents))[0]
-                    for antibiotic in self.antibiotics_list:
-                        if antibiotic in soil.antibiotics and soil.antibiotics[antibiotic] > 0:
-                                soil.antibiotics[antibiotic] -= 1
-                                immediate_kill = True
-                        else:
-                            immediate_kill = False
-             else:
-                immediate_kill = False
-                  
-             if (self.area < self.min_area) or (self.viability_index >= self.max_viability_time) or (self.random.random() < self.dying_chance) or (immediate_kill == True):
+        if (self.area < self.min_area) or (self.viability_index >= self.max_viability_time) or (self.random.random() < self.dying_chance):
+            
+            # die                
+            self.model.grid.remove_agent(self)
+            self.model.schedule.remove(self)
+
+        elif (self.immediate_killing == True) and (self.random.random() < self.aggressiveness):
                 
-                # die                
-                self.model.grid.remove_agent(self)
-                self.model.schedule.remove(self)
+            self_contents = self.model.grid.get_cell_list_contents([self.pos])
+            soil = list(filter(lambda x: isinstance(x, Soil), self_contents))[0]
+            for antibiotic in self.antibiotics_list:
+                if antibiotic in soil.antibiotics and soil.antibiotics[antibiotic] > 0:
+                    soil.antibiotics[antibiotic] -= 1
+                    self.model.grid.remove_agent(self)
+                    self.model.schedule.remove(self)
 
 class Type_a_2_3(mesa.Agent):
 
@@ -773,24 +767,21 @@ class Type_a_2_3(mesa.Agent):
 
     def die(self):
 
-             if (self.immediate_killing == True) and (self.random.random() < self.aggressiveness):
-                    
-                    self_contents = self.model.grid.get_cell_list_contents([self.pos])
-                    soil = list(filter(lambda x: isinstance(x, Soil), self_contents))[0]
-                    for antibiotic in self.antibiotics_list:
-                        if antibiotic in soil.antibiotics and soil.antibiotics[antibiotic] > 0:
-                                soil.antibiotics[antibiotic] -= 1
-                                immediate_kill = True
-                        else:
-                            immediate_kill = False
-             else:
-                immediate_kill = False
-                  
-             if (self.area < self.min_area) or (self.viability_index >= self.max_viability_time) or (self.random.random() < self.dying_chance) or (immediate_kill == True):
+        if (self.area < self.min_area) or (self.viability_index >= self.max_viability_time) or (self.random.random() < self.dying_chance):
+            
+            # die                
+            self.model.grid.remove_agent(self)
+            self.model.schedule.remove(self)
+
+        elif (self.immediate_killing == True) and (self.random.random() < self.aggressiveness):
                 
-                # die                
-                self.model.grid.remove_agent(self)
-                self.model.schedule.remove(self)
+            self_contents = self.model.grid.get_cell_list_contents([self.pos])
+            soil = list(filter(lambda x: isinstance(x, Soil), self_contents))[0]
+            for antibiotic in self.antibiotics_list:
+                if antibiotic in soil.antibiotics and soil.antibiotics[antibiotic] > 0:
+                    soil.antibiotics[antibiotic] -= 1
+                    self.model.grid.remove_agent(self)
+                    self.model.schedule.remove(self)
 
 class Type_a_2_4(mesa.Agent):
 
@@ -943,24 +934,21 @@ class Type_a_2_4(mesa.Agent):
 
     def die(self):
 
-             if (self.immediate_killing == True) and (self.random.random() < self.aggressiveness):
-                    
-                    self_contents = self.model.grid.get_cell_list_contents([self.pos])
-                    soil = list(filter(lambda x: isinstance(x, Soil), self_contents))[0]
-                    for antibiotic in self.antibiotics_list:
-                        if antibiotic in soil.antibiotics and soil.antibiotics[antibiotic] > 0:
-                                soil.antibiotics[antibiotic] -= 1
-                                immediate_kill = True
-                        else:
-                            immediate_kill = False
-             else:
-                immediate_kill = False
-                  
-             if (self.area < self.min_area) or (self.viability_index >= self.max_viability_time) or (self.random.random() < self.dying_chance) or (immediate_kill == True):
+        if (self.area < self.min_area) or (self.viability_index >= self.max_viability_time) or (self.random.random() < self.dying_chance):
+            
+            # die                
+            self.model.grid.remove_agent(self)
+            self.model.schedule.remove(self)
+
+        elif (self.immediate_killing == True) and (self.random.random() < self.aggressiveness):
                 
-                # die                
-                self.model.grid.remove_agent(self)
-                self.model.schedule.remove(self)
+            self_contents = self.model.grid.get_cell_list_contents([self.pos])
+            soil = list(filter(lambda x: isinstance(x, Soil), self_contents))[0]
+            for antibiotic in self.antibiotics_list:
+                if antibiotic in soil.antibiotics and soil.antibiotics[antibiotic] > 0:
+                    soil.antibiotics[antibiotic] -= 1
+                    self.model.grid.remove_agent(self)
+                    self.model.schedule.remove(self)
 
 
 ### DATA COLLECTOR
@@ -1155,10 +1143,9 @@ class Microbiome(mesa.Model):
 
             contents = self.grid.get_cell_list_contents(a)
             bacteria_contents = list(filter(lambda x: not isinstance(x, Soil), contents))
-            #soil = list(filter(lambda x: isinstance(x, Soil), contents))[0]
             free_space_avaliable = len(bacteria_contents) < self.max_num_bacteria_in_cell
 
-            if free_space_avaliable: #and len(soil.antibiotics) == 0
+            if free_space_avaliable:
                 
                 neighbors = self.grid.get_neighbors(a, moore =  True, include_center = False, radius = 1)
                 bacteria_neighbors = list(filter(lambda x: not isinstance(x, Soil), neighbors))
