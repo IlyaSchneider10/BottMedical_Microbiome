@@ -585,8 +585,8 @@ class Microbiome(mesa.Model):
             if len(initial_bacteria) == 0:
                 self.a2_competition_index.append(0)
             else:
-                initial_a2 = list(filter(lambda x: isinstance(x, Type_a_1), initial_bacteria))
-                self.a2_competition_index.append(len(initial_a2)/len(initial_bacteria))
+                initial_a1 = list(filter(lambda x: isinstance(x, Type_a_1), initial_bacteria))
+                self.a2_competition_index.append(len(initial_a1)/len(initial_bacteria))
         
     def find_free_space(self, max_search_radius):
 
