@@ -5,7 +5,7 @@ import operator
 import random
 import inspect
 
-### SOIL
+### SOIL: contains nutrients and antibiotics
 
 class Soil(mesa.Agent):
     def __init__(self, unique_id, model, pos):
@@ -62,7 +62,7 @@ def get_average_pos(lst):
     # returns a list with one tuple, which was needed for after the reset, should maybe be changed but works
     return [(round(x/counter), round(y/counter))]
 
-##### INTRODUCES VARIABILITY INTO BACTERIAL POPULATION
+##### INTRODUCES VARIABILITY INTO BACTERIAL POPULATION: function to sample only psoitive values of a destribution centered around the mean value
 
 def avoid_identical_clones(mean_value, variation_coefficient = 0.1, num_samples = 1):
 
@@ -78,8 +78,8 @@ def avoid_identical_clones(mean_value, variation_coefficient = 0.1, num_samples 
 
     return values
 
-s_mutens_radius = 0.75 # micrometers
-average_bacteria_area = 4 * math.pi * s_mutens_radius**2 # micrometers square, using sphere area formula, if we multiply by the 10^6 factor its 
+s_mutens_radius = 0.75 # micrometers radius found in literature and taken as refrence
+average_bacteria_area = 4 * math.pi * s_mutens_radius**2 # micrometers square, using sphere area formula to get bacterial areaa
 
 ### PREDATOR
 
@@ -88,136 +88,98 @@ class Type_a_1(mesa.Agent):
     def __init__(self, unique_id, model, pos, area, avrg_viability_time_type_a):
         super().__init__(unique_id, model)
 
-        ##### Ilya Additions:
-        self.area = avoid_identical_clones(area)
-        self.split_area = avoid_identical_clones(average_bacteria_area * 1.3) #Reference paper + ChatGPT
-        self.min_area = average_bacteria_area * 0.3 #Reference paper. I assume that the bacteria dies if its area is bellow the minimal area -> wrong assumption    
+####### Metabolism parameters: WARNING, changing these may be necessary but can also result in instant bacterial death
 
-        self.avaliability = 0.2 # Reference paper. Local avaliability of nutrients in a spatial cell for each bacterium
-        self.nutrient_uptake_ratio = avoid_identical_clones(0.3) # Reference paper
-        self.energy_yield = 0.65 # Reference paper has 0.15, does not work in our case because then the produced_energy < survival_energy
+        self.area = avoid_identical_clones(area)
+        self.split_area = avoid_identical_clones(average_bacteria_area * 1.3) #From reference paper + ChatGPT; area that is defines a point when a bacteria can divide
+        self.min_area = average_bacteria_area * 0.3 # From reference paper; bacteria dies if its area is samller than this
+
+        self.avaliability = 0.2 # From reference paper; local avaliability of nutrients in a spatial cell for each bacterium
+        self.nutrient_uptake_ratio = avoid_identical_clones(0.3) # From the reference paper; portion of nutrients form the simulation cell that the bacteria can access at once
+        self.energy_yield = 0.65 # Reference paper has 0.15, does not work in our case because then the produced_energy < survival_energy; fraction that represents much energy is obtained from the consumed nutrients
         self.maintenance = 0.1 # Reference paper. Units of energy that a unit of area requieres per each time step
         
-        self.max_possible_consumption = 0 # the biggest amount each bacterium can consume
-        self.max_individual_uptake = 0
-        self.energy_netto = 0 # Netto energy produced by bacteria during eating. If positive -> bacterium acquires area, if negative -> shrinks
+        self.max_possible_consumption = 0 # The biggest amount of nutrients bacteria can access in its neighborhood; initially set to zero and then overwritten
+        self.max_individual_uptake = 0 # The biggest amount of nutrients bacterium can phyiscally consume (depends on its area); initially set to zero and then overwritten
+        self.energy_netto = 0 # Netto energy produced by bacteria during eating, if positive -> bacterium acquires area, if negative -> shrinks; initially set to zero and then overwritten
 
-        self.average_viability_time = avrg_viability_time_type_a
-        self.max_viability_time = np.round(avoid_identical_clones(self.average_viability_time)) # maximum amount of times a bacteria can have a negative_netto energy
-        self.viability_index = 0 # the viability index of the bacteria, if it becomes > than self.max_viability_time the bacteria dies or when bacteria has no space to reproduce
-        self.dying_chance = np.random.uniform(0.001, 0.01) # Each bacterium has a probability between 0.1 and 1% to die
+        self.average_viability_time = avrg_viability_time_type_a  # Viability time describes number of timesteps at which bacteria was under stress. Stress being either shriniking (aka negative netto energy), contact with antibiotica or no possibility for division when its area > split_area
+        self.max_viability_time = np.round(avoid_identical_clones(self.average_viability_time)) # Maximum amount of times a bacteria can survive under stress
+        self.viability_index = 0 # Initially set to zero and then gets added 1 for every time under stress and is then compared with the max_viability_time to determine if bacteria dies or not
+        self.dying_chance = np.random.uniform(0.001, 0.01) # Each bacterium has a probability defined by the shown range to die at every time step
 
-        ################################
-        ### CUSTOMIZABLE VARIABLES
-        ################################
-        # spreads the dying, to not create big bumps in the graph
-        # example: average 40 turns --> 1/40 = 0.025
-        #####self.dying_chance = 0.025 # doesnt do anything, cant die on its own at the moment
-        # acts as health of the bacteria
-        ##### self.sturdiness = 1
-        # limits the number of bacteria in a single cell for performance and better spreading
-        self.max_num_bacteria_in_cell = 2
-        # if no cell with less than self.max_num_bacteria_in_cell is found, reproduction will not take place
-        self.reproduction_radius = 1
-        # chance to spread when self.max_num_bacteria_in_cell is not reached, to fasten the spread
-        self.random_spread_chance = 0.33
-        # scouting is done in a moore radius, scouting for stressed_by
-        self.scouting_radius = 1
-        # when a object of this type is found in the scouting radius, I get stressed
-        self.stressed_by = [Type_a_2, Type_a_2_2, Type_a_2_3, Type_a_2_4] # 
-        # radius in which the antibiotica will be spread 
-        self.stress_radius = 1
-        # nutrition and antibiotics need to be in the respective dict in the Soil object
-        self.nutrition_list = ["Type_a_food"]
-        ################################
-        ################################
-        ################################
+####### Simulation parameters: changing them redefines the entire simualtion and species behaviour but less then the previous parameters set; they are more technical
+
+        self.max_num_bacteria_in_cell = 2 # Limit the number of bacteria in a single simulation cell
+        self.reproduction_radius = 1 # Radius of the empty cells scanned for free space
+        self.random_spread_chance = 0.33 # Probability at which bacterial will look for a free neighbor cell, eventhough its max_num_bacteria_in_cell is not reached
+        self.scouting_radius = 1 # Max radius to look for stress bacteria types in the neighboring simulation cells
+        self.stressed_by = [Type_a_2, Type_a_2_2, Type_a_2_3, Type_a_2_4] # The bacteria types that stress this cell type
+        self.stress_radius = 1 # Radius which defines how far the antibiotica will be spread when the bacteria is stressed
+        self.nutrition_list = ["Type_a_food"] # Type of nutrients this bacteria type can consume
+
+####### Initialization parameters: DONT CHANGE THEM
 
         self.pos = pos
         self.age = 0
         self.is_stressed = False
-        
-        
-        # doesnt do anything when being eaten
         self.is_eaten = False
+   
+    def step(self): # Function that is repsonsible for the time flow in the simulation; defines actions taken at each time step
 
+        self.age += 1 # Bacteria ages every time step
 
-    # Wird bei jedem Durchgang aufgerufen
-    def step(self):
+        self.stress_reaction() # Stress reaction is executed (look below for waht this function does)
 
-        self.age += 1
-
-        # stress reaction
-        self.stress_reaction()
-
-        # if bacteria is eaten by another thing, it doesnt do anything (it will be killed by the other party)
-        if not self.is_eaten:
+        if not self.is_eaten: # if bacteria is eaten it doesnt do anything. If it is not being eaten it executes the self explanatory functions
             self.eat()
             self.reproduce()
             self.die()
 
-            ##### CAN BE SET AN UPPER LIMIT FOR NUMBER OF BACTERIA WITH THIS LOOP:
-            
-            # when maximum number in model is reached, reproduction is paused
 
-            ##### if not self.model.reproduction_stop_a_1:
-            #####    self.reproduce()
-            ##### self.die()
+    def scout(self):  # Scans the area for stress factors, when found it gets stressed
 
-
-    # scans the area for stress factors, when found, I get stressed
-    def scout(self):
-        # scanned positions
         positions = self.model.grid.get_neighborhood(
             self.pos, moore=True, include_center=True, radius=self.scouting_radius
-        )
+        ) # scanned positions
 
-        # objects on position
-        inhabitants = self.model.grid.get_cell_list_contents(positions)
+        inhabitants = self.model.grid.get_cell_list_contents(positions) # objects on position
         for inhabitant in inhabitants:
             for bacteria in self.stressed_by:
-
-                # if inhabitant is on stressed_by list, I get stressed
-                if isinstance(inhabitant, bacteria):
+                if isinstance(inhabitant, bacteria): # If an inhabitant is on stressed_by list, bacteria gets stressed
                     return True
         return False
     
     def stress_reaction(self):
 
-        self.is_stressed = self.scout()
+        self.is_stressed = self.scout() # Scout function is executed (see above)
 
-        if self.is_stressed:
+        if self.is_stressed: # If bacteria is stressed it spreads antibiotica 
 
-            # spread antibiotica in all neighboring cells
             neighboring_cells = self.model.grid.get_neighborhood(
                 self.pos, moore=True, include_center=True, radius=self.stress_radius
             )
 
-            # add antibiotica up, maybe this should be limited, as now it is like unlimited
             for cell in neighboring_cells:
                 soil = self.model.grid.get_cell_list_contents([cell])[0]
 
-                # create or add antibiotica
                 if 'Type_a_2_X' in soil.antibiotics:
                     soil.antibiotics['Type_a_2_X'] += 1
                 else:
                     soil.antibiotics['Type_a_2_X'] = 1
+   
+    def eat(self): # Nutrient consumntion process
 
-
-    # eat nutrients from soil    
-    def eat(self):
-        # get soil
-        soil = self.model.grid.get_cell_list_contents([self.pos])[0]
+        self_contents = self.model.grid.get_cell_list_contents([self.pos])
+        soil = list(filter(lambda x: isinstance(x, Soil), self_contents))[0] # Get the soil object
         
-        # if there are nutrients, first nutrient on nutrition_list gets consumed
         for nutrient in self.nutrition_list:
-            # look if consumable nutrients in soil
-            if nutrient in soil.nutrients and soil.nutrients[nutrient] > 0:
+            if nutrient in soil.nutrients and soil.nutrients[nutrient] > 0: # If there are avaliable nutrients compute how many nutrients will be consumed
 
-                self.max_possible_consumption = self.avaliability * soil.nutrients[nutrient] # the biggest amount each bacterium can consume
-                self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
-                if self.max_possible_consumption >= self.max_individual_uptake:
-                    actual_consumption = self.max_individual_uptake # make sure that bacteria does not consume more nutrients than its individual consumption upper bounf
+                self.max_possible_consumption = self.avaliability * soil.nutrients[nutrient] # The biggest amount each bacterium can consume depending on the nutrients amount
+                self.max_individual_uptake = self.area * self.nutrient_uptake_ratio # The biggest amount each bacterium can consume depending on the bacteria area
+                if self.max_possible_consumption >= self.max_individual_uptake: # Pick the smaller of the upper bounds
+                    actual_consumption = self.max_individual_uptake 
                 else: 
                     actual_consumption = self.max_possible_consumption
 

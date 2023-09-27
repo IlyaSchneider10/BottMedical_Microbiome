@@ -64,10 +64,10 @@ model_params = {
         "Torus", False, description=""
     ),
     "grid_width": mesa.visualization.Slider(
-        "Grid width", 100, 0, 100, description=""
+        "Grid width", 25, 0, 100, description=""
     ),
     "grid_height": mesa.visualization.Slider(
-        "Grid height", 100, 0, 100, description=""
+        "Grid height", 25, 0, 100, description=""
     ),
     "aggressiveness": mesa.visualization.Slider(
         "Aggressiveness", 10, 0.0, 100, description=""
@@ -78,7 +78,7 @@ model_params = {
 }
 
 # set the portrayal function and size of the canvas for visualization
-canvas_element = mesa.visualization.CanvasGrid(bacteria_portrayal, 100, 100, 500, 500)
+canvas_element = mesa.visualization.CanvasGrid(bacteria_portrayal, 25, 25, 500, 500)
 
 # Namen der Labels müssen gleich sein wie im DataCollector im model
 chart_element = mesa.visualization.ChartModule(
