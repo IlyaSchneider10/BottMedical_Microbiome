@@ -62,7 +62,7 @@ def get_average_pos(lst):
     # returns a list with one tuple, which was needed for after the reset, should maybe be changed but works
     return [(round(x/counter), round(y/counter))]
 
-##### INTRODUCES VARIABILITY INTO BACTERIAL POPULATION: function to sample only psoitive values of a destribution centered around the mean value
+### INTRODUCES VARIABILITY INTO BACTERIAL POPULATION: function to sample only psoitive values of a destribution centered around the mean value
 
 def avoid_identical_clones(mean_value, variation_coefficient = 0.1, num_samples = 1):
 
@@ -78,8 +78,16 @@ def avoid_identical_clones(mean_value, variation_coefficient = 0.1, num_samples 
 
     return values
 
+### DATA COLLECTOR: function to quantify each species at every time step
+
+def get_num_bacteria_per_type(model, bacteria_type):
+    bacteria = [a for a in model.schedule.agents if isinstance(a, bacteria_type)]
+    return len(bacteria)
+
+### CONSTANTS: 
+
 s_mutens_radius = 0.75 # micrometers radius found in literature and taken as refrence
-average_bacteria_area = 4 * math.pi * s_mutens_radius**2 # micrometers square, using sphere area formula to get bacterial areaa
+average_bacteria_area = 4 * math.pi * s_mutens_radius**2 # micrometers square, using sphere area formula to get bacterial area
 
 ### PREDATOR
 
@@ -908,13 +916,6 @@ class Type_a_2_4(mesa.Agent):
                     soil.antibiotics[antibiotic] -= 1
                     self.model.grid.remove_agent(self)
                     self.model.schedule.remove(self)
-
-
-### DATA COLLECTOR
-
-def get_num_bacteria_per_type(model, bacteria_type):
-    bacteria = [a for a in model.schedule.agents if isinstance(a, bacteria_type)]
-    return len(bacteria)
 
 ### MODEL
 
