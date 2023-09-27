@@ -184,28 +184,26 @@ class Type_a_1(mesa.Agent):
                     actual_consumption = self.max_possible_consumption
 
                 soil.nutrients[nutrient] -= actual_consumption
-                self.energy_netto = self.energy_yield * actual_consumption  - self.maintenance * self.area # energy coming from the consumed nutrients - the energy that bacteria needs to survive
+                self.energy_netto = self.energy_yield * actual_consumption  - self.maintenance * self.area # energy coming from the consumed nutrients (produced) - the energy that bacteria needs to survive (maintenance)
                 
 
-                if self.energy_netto >= 0:
-                    self.area += self.energy_netto * 0.5 # Reference paper. If there is some avalaible energy, bacterium will convert half of it into area
-                else: 
-                    self.area = 0.9 * self.area # Reference paper. If the netto energy balance is negative -> bacteria does not cover its maintenance -> shrinks 10%
+                if self.energy_netto >= 0: # If the netto energy is non-negative bacteria converts the produced energy into area
+                    self.area += self.energy_netto * 0.5 # The increment factor (0.5) is from reference paper
+                else: # If it is negative bacteria's area shrinks
+                    self.area = 0.9 * self.area # The shrincage factor (0.9) id from reference paper
                     self.viability_index += 1
             
-    def reproduce(self):
+    def reproduce(self): 
 
-        # Only reproduce if the area is big enough forn that, if not increase the viability index
-        if self.area >= self.split_area: 
+        if self.area >= self.split_area: # Only reproduce if the area is big enough forn that, if not increase the viability index
 
             self_contents = self.model.grid.get_cell_list_contents([self.pos])
             self_contents_bacteria = list(filter(lambda x: not isinstance(x, Soil), self_contents))
 
-            # Spread to the neighboring simulation cells if one of the conditions met
-            if len(self_contents_bacteria) >= self.max_num_bacteria_in_cell or self.random.random() < self.random_spread_chance: 
-                # If there are free positions for this bacteria type it will push the mother cell there and reproduce the daughter cell into mother's original location
-                # If there is no space avaliable then the viability index gets increased
-                if len(self.model.free_space[f'{Type_a_1}_coordinates']) > 0:
+           
+            if len(self_contents_bacteria) >= self.max_num_bacteria_in_cell or self.random.random() < self.random_spread_chance:  # Spread to the neighboring simulation cells if one of the conditions met
+
+                if len(self.model.free_space[f'{Type_a_1}_coordinates']) > 0: # If there is a free positions for this bacteria type it will push the mother cell there and reproduce the daughter cell into mother's original location
 
                     reproduction_pos = self.pos
                     self.model.grid.move_agent(self, self.model.free_space[f'{Type_a_1}_coordinates'][0])
@@ -218,11 +216,10 @@ class Type_a_1(mesa.Agent):
                     self.model.grid.place_agent(new_bacteria, reproduction_pos)
                     self.model.schedule.add(new_bacteria)
                 
-                else:
+                else: # If there is no space avaliable then the viability index gets increased
                     self.viability_index += 1
 
-        # Otherwise reproduce in its own simulation cell        
-            else:
+            else: # Otherwise reproduce in its own simulation cell   
 
                 reproduction_pos = self.pos
                 new_bacteria= Type_a_1(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time)
@@ -237,8 +234,8 @@ class Type_a_1(mesa.Agent):
     
     def die(self):
         
-        if  (self.area < self.min_area) or (self.viability_index >= self.max_viability_time) or (self.random.random() < self.dying_chance):
-                # die
+        if  (self.area < self.min_area) or (self.viability_index >= self.max_viability_time) or (self.random.random() < self.dying_chance): # Death if one of the conditions is met
+                
                 self.model.grid.remove_agent(self)
                 self.model.schedule.remove(self)
 
