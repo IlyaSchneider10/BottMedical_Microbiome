@@ -616,7 +616,7 @@ class Type_a_2_3(mesa.Agent):
                 if len(self.model.free_space[f'{Type_a_2_3}_coordinates']) > 0: # If there is a free positions for this bacteria type it will push the mother cell there and reproduce the daughter cell into mother's original location
 
                     reproduction_pos = self.pos
-                    self.model.grid.move_agent(self, self.model.free_space[f'{Type_a_2}_coordinates'][0])
+                    self.model.grid.move_agent(self, self.model.free_space[f'{Type_a_2_3}_coordinates'][0])
                     del self.model.free_space[f'{Type_a_2_3}_coordinates'][0]
 
                     new_bacteria= Type_a_2_3(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, self.immediate_killing, self.average_aggressiveness)
@@ -826,6 +826,9 @@ class Microbiome(mesa.Model):
 
         self.grid = mesa.space.MultiGrid(self.grid_width, self.grid_height, is_torus)
         self.schedule = mesa.time.RandomActivation(self)
+
+        self.antibacterial_perturbation_time_frame = antibacterial_perturbation_time_frame
+        self.perturbation = self.perturbation_time(antibacterial_perturbation_number)
 
 ####### Agent Creation:
 
