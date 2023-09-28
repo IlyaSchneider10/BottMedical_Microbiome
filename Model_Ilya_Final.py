@@ -385,47 +385,26 @@ class Type_a_2(mesa.Agent):
 ### MODEL
 
 class Microbiome(mesa.Model):
-    """A model with some number of agents."""
-    # EVERYTHING WITH FIVE HASHTAGS IS RELATED TO INITIAL MESA SCAFFOLD AND COULD BE USEFULL IN THE FUTURE
 
-    def __init__(self, num_type_a_1, num_type_a_2, is_torus, grid_height, grid_width, immediate_killing, aggressiveness, avrg_viability_time_type_a,# Compulsory inputs for the simulation
-                 avrg_area_type_a = average_bacteria_area): # Variables that have a default value but can be changed
+    def __init__(self, num_type_a_1, num_type_a_2, is_torus, grid_height, grid_width, immediate_killing, aggressiveness, avrg_viability_time_type_a, avrg_area_type_a = average_bacteria_area):
 
-        ################################
-        ### CUSTOMIZABLE VARIABLES
-        ################################
-        # grid_width and grid_height also need to be changed in server.py for visualisation:
-        # canvas_element = mesa.visualization.CanvasGrid(bacteria_portrayal, self.grid_width, self.grid_height, 500, 500)
+####### Model parameters:
+
         self.grid_width = grid_width
         self.grid_height = grid_height
-        self.decimal_aggressiveness = aggressiveness / 100
+        self.decimal_aggressiveness = aggressiveness / 100 # Scale aggressiveness to 0:1 interval
+        self.max_num_bacteria_in_cell = 2 # Limit the number of bacteria in a single simulation cell
 
-        # All used for quantifying the initial conditions
-        self.a1_edge_distance = []
+####### Initialization Quantification: list to quantify the initial conditions
+
+        self.a1_edge_distance = [] 
         self.a2_edge_distance = []
         self.a2_competition_index = []
+        self.a1_initial_pos = [] 
+        self.a2_initial_pos = []
+        self.a1_initial_aggressiveness = []
         
-        # decides after how many turns the random direction of the type_d swarms changes
-        # prevents the swarm from going back and forth 
-        # done in the model for the whole swarm, so it doesnt spread
-        #self.swarm_direction_turns = 10
-        # decides if the swarm moves in percentage 0 = 0%, 1 = 100% --> 1 means swarm moves every time
-        # done in the model for the whole swarm, so it doesnt spread
-        # self.swarm_chance_move = 1
-        # stops reproduction after population reaches a limit
-
-        ##### REMOVED THE UPPER BOUND FOR POPULATIONS
-
-        ##### self.type_a_population_limit = type_a_population_limit
-
-        ##### self.type_d_population_limit = type_d_population_limit
-        # reproduction spread pattern, if True includes all 8 surrounding squares, False means only up/down/left/right
-        self.reproduction_spread_moore = True
-        # limits the number of bacteria in a single cell for performance and better spreading
-        self.max_num_bacteria_in_cell = 2
-        ################################
-        ################################
-        ################################
+####### Initialization parameters: DONT CHANGE THEM
 
         self.running = True
         self.current_id = 1
@@ -433,46 +412,36 @@ class Microbiome(mesa.Model):
         self.directions = ["left", "right", "up", "down"]
 
         self.grid = mesa.space.MultiGrid(self.grid_width, self.grid_height, is_torus)
-        
-        # different schedulers can be found here
-        # https://mesa.readthedocs.io/en/latest/apis/time.html
         self.schedule = mesa.time.RandomActivation(self)
 
-        # Create Soil
-        for i in range(self.grid.width):
+####### Agent Creation:
+
+        for i in range(self.grid.width): # Create Soil
             for j in range(self.grid.height):
                 soil = Soil(self.next_id(), self, (i, j))
                 self.schedule.add(soil)
                 self.grid.place_agent(soil, (i, j))
 
-        # Create Type_a_1
-        self.a1_initial_pos = [] 
-        for i in range(num_type_a_1):
+        for i in range(num_type_a_1): # Create Type_a_1
             x = self.random.randrange(self.grid.width)
             y = self.random.randrange(self.grid.height)
             a = Type_a_1(self.next_id(), self, (x, y), avrg_area_type_a, avrg_viability_time_type_a)
             self.schedule.add(a)
-            # Add the agent to a random grid cell
             self.grid.place_agent(a, (x, y))
             self.a1_initial_pos.append((x,y))
-            
-
-        # Create Type_a_2
-        self.a2_initial_pos = []
-        self.a1_initial_aggressiveness = []
-        for i in range(num_type_a_2):
+        
+        for i in range(num_type_a_2): # Create Type_a_2
             x = self.random.randrange(self.grid.width)
             y = self.random.randrange(self.grid.height)
             a = Type_a_2(self.next_id(), self, (x, y), avrg_area_type_a, avrg_viability_time_type_a, immediate_killing, self.decimal_aggressiveness)
             self.schedule.add(a)
-            # Add the agent to a random grid cell
             self.grid.place_agent(a, (x, y))
             self.a2_initial_pos.append((x,y))
             self.a1_initial_aggressiveness.append(a.aggressiveness)
 
-        self.initial_conditions = self.quantify_initial_conditions()    
+        self.initial_conditions = self.quantify_initial_conditions() # Call the function to quantify the intial conditions (see function description below) 
 
-        self.datacollector = mesa.DataCollector(
+        self.datacollector = mesa.DataCollector( # Collect the data about bacteria population and the initial conditions of the simnulations
             model_reporters={
                 "A1_Initial_Edge_Distance": lambda m: np.mean(m.a1_edge_distance),
                 "A2_Initial_Edge_Distance": lambda m: np.mean(m.a2_edge_distance),
@@ -483,8 +452,7 @@ class Microbiome(mesa.Model):
             }
         )  
 
-# Computes the minimum distsnce till edge for each bacteria and the ratio of the own type next to it
-    def quantify_initial_conditions(self):
+    def quantify_initial_conditions(self): # Computes the minimum distsnce till edge for each bacteria and the ratio of the own type next to it
 
         width = self.grid.width
         height = self.grid.height
@@ -515,22 +483,19 @@ class Microbiome(mesa.Model):
                 initial_a1 = list(filter(lambda x: isinstance(x, Type_a_1), initial_bacteria))
                 self.a2_competition_index.append(len(initial_a1)/len(initial_bacteria))
         
-    def find_free_space(self, max_search_radius):
+    def find_free_space(self, max_search_radius): # Finds free space for the microcolony growth; the function is used when all the neighboring cells are full with bacteria and neighbors have to be pushed to create süace for the reproduction (in prcatice in the code the mother cell is relocated to create space for the daughter cell)
 
-        classes = inspect.getmembers(
-            inspect.getmodule(self.__class__), inspect.isclass)
+        classes = inspect.getmembers(inspect.getmodule(self.__class__), inspect.isclass) # Get all the present classes in the model
 
-        # Filter classes that inherit from Agent but exclude "Soil"
-        agent_classes = [cls for name, cls in classes if issubclass(cls, mesa.Agent) and cls.__name__ != 'Soil']
+        agent_classes = [cls for name, cls in classes if issubclass(cls, mesa.Agent) and cls.__name__ != 'Soil'] # Remove the Soil class, since only interested in bacterial classes
 
-        # Create a positional list for each bacteria agent
-        positional_dict = {}
-        for agent in agent_classes:
+        positional_dict = {} # Main positional dictionary where all positional lists for each bacteria class will be collected
+        for agent in agent_classes: # Create a positional list for each bacteria agent class
 
             list_name = f'{agent}_coordinates'
             positional_dict[list_name] = []
 
-        all_coordinates = self.grid.get_neighborhood((0,0), moore = True, include_center = True, radius = max_search_radius)
+        all_coordinates = self.grid.get_neighborhood((0,0), moore = True, include_center = True, radius = max_search_radius) # Get all the coordinates of the simualtion greed
 
         for a in all_coordinates:
 
@@ -538,38 +503,36 @@ class Microbiome(mesa.Model):
             bacteria_contents = list(filter(lambda x: not isinstance(x, Soil), contents))
             free_space_avaliable = len(bacteria_contents) < self.max_num_bacteria_in_cell
 
-            if free_space_avaliable:
+            if free_space_avaliable: # If there are simulations cells that are not full yet they get assigned to the one of the bacterial positional lists
                 
                 neighbors = self.grid.get_neighbors(a, moore =  True, include_center = False, radius = 1)
                 bacteria_neighbors = list(filter(lambda x: not isinstance(x, Soil), neighbors))
 
-                if len(bacteria_neighbors) > 0:
+                if len(bacteria_neighbors) > 0: # Only interested in free space that has unempty neighbotrs
 
                     max_bacteria_neighbors = 0
-                    main_neighbor =  None
+                    main_neighbor =  None # Main neighbor is the bacteria type in whose positional list the free coordinate will be allocated
 
                     for agent in agent_classes:
  
                         type_specific_neighbors = list(filter(lambda x: isinstance(x, agent), bacteria_neighbors))
 
-                        if len(type_specific_neighbors) > max_bacteria_neighbors:
+                        if len(type_specific_neighbors) > max_bacteria_neighbors: # This part make sure that the main neighbor is the bacteria type with most meighbors around the free coordinate
                     
                             max_bacteria_neighbors = len(type_specific_neighbors)
                             main_neighbor = agent
                     
-                    positional_dict[f'{main_neighbor}_coordinates'].append(a)
+                    positional_dict[f'{main_neighbor}_coordinates'].append(a) # The free coordinate is appended to a positional lsit of the main neighbor (and thus is only accessible to this kind of bacteria type during reproduction), which is in the main positional dictrionary
 
-        for key, position_list in positional_dict.items():
+        for key, position_list in positional_dict.items(): # At the end each list is shuffled to ensure the free cordiantes are not ordered in an ordered/biased way
             self.random.shuffle(position_list)
            
-        return positional_dict
+        return positional_dict # The output of the fucntion is the positional dictionary with a positional list with free coordiantes specifically for each bacterial type
 
-    def step(self):
+    def step(self): # Function that is repsonsible for the time flow in the simulation; defines actions taken at each time step BY THE MODEL AND NOT THE AGENTS
         
         self.step_num += 1
-
-        # run agents
         
-        self.free_space = self.find_free_space(max(self.grid_width, self.grid_height))
+        self.free_space = self.find_free_space(max(self.grid_width, self.grid_height))  # Postional dictioanry wiht the corresponding lists is updated at every step
         self.datacollector.collect(self)
         self.schedule.step()

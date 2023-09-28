@@ -889,89 +889,57 @@ class Type_a_2_4(mesa.Agent):
 ### MODEL
 
 class Microbiome(mesa.Model):
-    """A model with some number of agents."""
-    # EVERYTHING WITH FIVE HASHTAGS IS RELATED TO INITIAL MESA SCAFFOLD AND COULD BE USEFULL IN THE FUTURE
 
     def __init__(self, num_type_a_1, num_type_a_2, num_type_a_2_2, num_type_a_2_3, num_type_a_2_4, is_torus, grid_height, grid_width, immediate_killing, aggressiveness, avrg_viability_time_type_a, antibacterial_perturbation_number = 0, antibacterial_perturbation_time_frame = 0, # Compulsory inputs for the simulation
-                 avrg_area_type_a = average_bacteria_area): # Variables that have a default value but can be changed
+                 avrg_area_type_a = average_bacteria_area):
 
-        ################################
-        ### CUSTOMIZABLE VARIABLES
-        ################################
-        # grid_width and grid_height also need to be changed in server.py for visualisation:
-        # canvas_element = mesa.visualization.CanvasGrid(bacteria_portrayal, self.grid_width, self.grid_height, 500, 500)
+####### Model parameters:
+
         self.grid_width = grid_width
         self.grid_height = grid_height
-        self.decimal_aggressiveness = aggressiveness / 100
+        self.decimal_aggressiveness = aggressiveness / 100 # Scale aggressiveness to 0:1 interval
+        self.max_num_bacteria_in_cell = 2 # Limit the number of bacteria in a single simulation cell
 
-        # All used for quantifying the initial conditions
-        self.a1_edge_distance = []
+####### Initialization Quantification: list to quantify the initial conditions
+
+        self.a1_edge_distance = [] 
         self.a2_edge_distance = []
         self.a2_competition_index = []
+        self.a1_initial_pos = [] 
+        self.a2_initial_pos = []
+        self.a1_initial_aggressiveness = []
         
-        # decides after how many turns the random direction of the type_d swarms changes
-        # prevents the swarm from going back and forth 
-        # done in the model for the whole swarm, so it doesnt spread
-        #self.swarm_direction_turns = 10
-        # decides if the swarm moves in percentage 0 = 0%, 1 = 100% --> 1 means swarm moves every time
-        # done in the model for the whole swarm, so it doesnt spread
-        # self.swarm_chance_move = 1
-        # stops reproduction after population reaches a limit
-
-        ##### REMOVED THE UPPER BOUND FOR POPULATIONS
-
-        ##### self.type_a_population_limit = type_a_population_limit
-
-        ##### self.type_d_population_limit = type_d_population_limit
-        # reproduction spread pattern, if True includes all 8 surrounding squares, False means only up/down/left/right
-        self.reproduction_spread_moore = True
-        # limits the number of bacteria in a single cell for performance and better spreading
-        self.max_num_bacteria_in_cell = 2
-        ################################
-        ################################
-        ################################
+####### Initialization parameters: DONT CHANGE THEM
 
         self.running = True
         self.current_id = 1
         self.step_num = 1
         self.directions = ["left", "right", "up", "down"]
-        self.antibacterial_perturbation_time_frame = antibacterial_perturbation_time_frame
-        self.perturbation = self.perturbation_time(antibacterial_perturbation_number)
 
         self.grid = mesa.space.MultiGrid(self.grid_width, self.grid_height, is_torus)
-        
-        # different schedulers can be found here
-        # https://mesa.readthedocs.io/en/latest/apis/time.html
         self.schedule = mesa.time.RandomActivation(self)
 
-        # Create Soil
-        for i in range(self.grid.width):
+####### Agent Creation:
+
+        for i in range(self.grid.width): # Create Soil
             for j in range(self.grid.height):
                 soil = Soil(self.next_id(), self, (i, j))
                 self.schedule.add(soil)
                 self.grid.place_agent(soil, (i, j))
 
-        # Create Type_a_1
-        self.a1_initial_pos = [] 
-        for i in range(num_type_a_1):
+        for i in range(num_type_a_1):  # Create Type_a_1
             x = self.random.randrange(self.grid.width)
             y = self.random.randrange(self.grid.height)
             a = Type_a_1(self.next_id(), self, (x, y), avrg_area_type_a, avrg_viability_time_type_a)
             self.schedule.add(a)
-            # Add the agent to a random grid cell
             self.grid.place_agent(a, (x, y))
             self.a1_initial_pos.append((x,y))
             
-
-        # Create Type_a_2
-        self.a2_initial_pos = []
-        self.a1_initial_aggressiveness = []
-        for i in range(num_type_a_2):
+        for i in range(num_type_a_2): # Create Type_a_2
             x = self.random.randrange(self.grid.width)
             y = self.random.randrange(self.grid.height)
             a = Type_a_2(self.next_id(), self, (x, y), avrg_area_type_a, avrg_viability_time_type_a, immediate_killing, self.decimal_aggressiveness)
             self.schedule.add(a)
-            # Add the agent to a random grid cell
             self.grid.place_agent(a, (x, y))
             self.a2_initial_pos.append((x,y))
             self.a1_initial_aggressiveness.append(a.aggressiveness)
