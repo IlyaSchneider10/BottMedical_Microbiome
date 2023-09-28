@@ -12,8 +12,6 @@ COLOR_TYPE_A_2 = "#9FBF8C"
 
 
 def bacteria_portrayal(agent):
-    #if agent is None or isinstance(agent, Soil):
-    #    return
 
     portrayal = {}
     # update portrayal characteristics for each Person object
@@ -42,12 +40,6 @@ def bacteria_portrayal(agent):
 # dictionary of user settable parameters - these map to the model __init__ parameters
 model_params = {
 
-    ##### REMOVED THE SLIDER FOR UPPER BOUND OF POPULATIONS
-
-    ##### "STATIC_TEXT1": mesa.visualization.StaticText('<h4>Type A</h4> (Staphylococcus aureus)'),
-    ##### "type_a_population_limit": mesa.visualization.Slider(
-    #####    "Type_a Population Limit", 1000, 0, 10000, description="0 means no Limit"
-    ##### ),
     "STATIC_TEXT2": mesa.visualization.StaticText('<br><h4>Type A 1 and Type A 2</h4> Typ A 1 can in proximity to Typ A 2 secrete antibiotica against it.'),
     "num_type_a_1": mesa.visualization.Slider(
         "Type A 1 strating population", 30, 0, 100, description="Randomly distributed"
