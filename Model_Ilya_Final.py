@@ -193,7 +193,6 @@ class Type_a_1(mesa.Agent):
 
                 soil.nutrients[nutrient] -= actual_consumption
                 self.energy_netto = self.energy_yield * actual_consumption  - self.maintenance * self.area # energy coming from the consumed nutrients (produced) - the energy that bacteria needs to survive (maintenance)
-                
 
                 if self.energy_netto >= 0: # If the netto energy is non-negative bacteria converts the produced energy into area
                     self.area += self.energy_netto * 0.5 # The increment factor (0.5) is from reference paper
@@ -208,9 +207,7 @@ class Type_a_1(mesa.Agent):
             self_contents = self.model.grid.get_cell_list_contents([self.pos])
             self_contents_bacteria = list(filter(lambda x: not isinstance(x, Soil), self_contents))
 
-           
             if len(self_contents_bacteria) >= self.max_num_bacteria_in_cell or self.random.random() < self.random_spread_chance:  # Spread to the neighboring simulation cells if one of the conditions met
-
                 if len(self.model.free_space[f'{Type_a_1}_coordinates']) > 0: # If there is a free positions for this bacteria type it will push the mother cell there and reproduce the daughter cell into mother's original location
 
                     reproduction_pos = self.pos
@@ -254,121 +251,92 @@ class Type_a_2(mesa.Agent):
     def __init__(self, unique_id, model, pos, area, avrg_viability_time_type_a, immediate_killing, aggressiveness):
         super().__init__(unique_id, model)
 
-        ##### Ilya Additions:
+####### Metabolism parameters: WARNING, changing these may be necessary but can also result in instant bacterial death
+
         self.area = avoid_identical_clones(area)
-        self.split_area = avoid_identical_clones(average_bacteria_area * 1.3) #Reference paper + ChatGPT
-        self.min_area = average_bacteria_area * 0.3 #Reference paper. I assume that the bacteria dies if its area is bellow the minimal area -> wrong assumption    
+        self.split_area = avoid_identical_clones(average_bacteria_area * 1.3) #From reference paper + ChatGPT; area that is defines a point when a bacteria can divide
+        self.min_area = average_bacteria_area * 0.3 # From reference paper; bacteria dies if its area is samller than this
 
-        self.avaliability = 0.2 # Reference paper. Local avaliability of nutrients in a spatial cell for each bacterium
-        self.nutrient_uptake_ratio = avoid_identical_clones(0.3) # Reference paper
-        self.energy_yield = 0.65 # Reference paper has 0.15, does not work in our case because then the produced_energy < survival_energy
+        self.avaliability = 0.2 # From reference paper; local avaliability of nutrients in a spatial cell for each bacterium
+        self.nutrient_uptake_ratio = avoid_identical_clones(0.3) # From the reference paper; portion of nutrients form the simulation cell that the bacteria can access at once
+        self.energy_yield = 0.65 # Reference paper has 0.15, does not work in our case because then the produced_energy < survival_energy; fraction that represents much energy is obtained from the consumed nutrients
         self.maintenance = 0.1 # Reference paper. Units of energy that a unit of area requieres per each time step
-    
-        self.max_possible_consumption = 0 # the biggest amount each bacterium can consume
-        self.max_individual_uptake = 0
-        self.energy_netto = 0 # Netto energy produced by bacteria during eating. If positive -> bacterium acquires area, if negative -> shrinks
-
-        self.average_viability_time = avrg_viability_time_type_a
-        self.max_viability_time = np.round(avoid_identical_clones(self.average_viability_time)) # maximum amount of times a bacteria can have a negative_netto energy
-        self.viability_index = 0 # the viability index of the bacteria, if it becomes > than self.max_viability_time the bacteria dies or when bacteria has no space to reproduce
-        self.dying_chance = np.random.uniform(0.001, 0.01) # Each bacterium has a probability between 0.1 and 1% to die
-
-        self.immediate_killing = immediate_killing 
-        self.average_aggressiveness = aggressiveness
-        self.aggressiveness  = avoid_identical_clones(self.average_aggressiveness)# If immediate_killing = T its probability of the immediate kill, else percentage of energy decreased from the netto_energy of bacteria
-
-        ################################
-        ### CUSTOMIZABLE VARIABLES
-        ################################
-        # spreads the dying, to not create big bumps in the graph
-        # example: average 40 turns --> 1/40 = 0.025
-        ##### self.dying_chance = 0.025
-        # acts as health of the bacteria
-        ##### self.sturdiness = 1
-        # limits the number of bacteria in a single cell for performance and better spreading
-        self.max_num_bacteria_in_cell = 2
-        # if no cell with less than self.max_num_bacteria_in_cell is found, reproduction will not take place
-        self.reproduction_radius = 1
-        # chance to spread when self.max_num_bacteria_in_cell is not reached, to fasten the spread
-        self.random_spread_chance = 0.33
-        # if True it wont spread on fields containing antibiotics against it
-        # False creates a bacteria free zone between type_a_1 and type_a_2
-        ##### self.spread_in_antibiotics = True ##### Used to be False
-        # nutrition and antibiotics need to be in the respective dict in the Soil object
-        self.nutrition_list = ["Type_a_food"]
-        self.antibiotics_list = ["Type_a_2_X"] # is created dynamically by type_a_1
         
-        ################################
-        ################################
-        ################################
+        self.max_possible_consumption = 0 # The biggest amount of nutrients bacteria can access in its neighborhood; initially set to zero and then overwritten
+        self.max_individual_uptake = 0 # The biggest amount of nutrients bacterium can phyiscally consume (depends on its area); initially set to zero and then overwritten
+        self.energy_netto = 0 # Netto energy produced by bacteria during eating, if positive -> bacterium acquires area, if negative -> shrinks; initially set to zero and then overwritten
+
+        self.average_viability_time = avrg_viability_time_type_a  # Viability time describes number of timesteps at which bacteria was under stress. Stress being either shriniking (aka negative netto energy), contact with antibiotica or no possibility for division when its area > split_area
+        self.max_viability_time = np.round(avoid_identical_clones(self.average_viability_time)) # Maximum amount of times a bacteria can survive under stress
+        self.viability_index = 0 # Initially set to zero and then gets added 1 for every time under stress and is then compared with the max_viability_time to determine if bacteria dies or not
+        self.dying_chance = np.random.uniform(0.001, 0.01) # Each bacterium has a probability defined by the shown range to die at every time step
+
+        self.immediate_killing = immediate_killing # If True bacteria dies when it comes in contact with antibiotica with a probability that is equal to aggressiveness; if False netto energy is decreased by a factot that is equal to agressiveness
+        self.average_aggressiveness = aggressiveness
+        self.aggressiveness  = avoid_identical_clones(self.average_aggressiveness)
+
+####### Simulation parameters: changing them redefines the entire simualtion and species behaviour but less then the previous parameters set; they are more technical
+
+        self.max_num_bacteria_in_cell = 2 # Limit the number of bacteria in a single simulation cell
+        self.reproduction_radius = 1 # Radius of the empty cells scanned for free space
+        self.random_spread_chance = 0.33 # Probability at which bacterial will look for a free neighbor cell, eventhough its max_num_bacteria_in_cell is not reached
+        self.nutrition_list = ["Type_a_food"] # Type of nutrients this bacteria type can consume
+        self.antibiotics_list = ["Type_a_2_X"] # Antibiotica type that affects the bacteria
+
+####### Initialization parameters: DONT CHANGE THEM
 
         self.pos = pos
         self.age = 0
-        
-        # doesnt do anything when being eaten
         self.is_eaten = False
 
+    def step(self): # Function that is repsonsible for the time flow in the simulation; defines actions taken at each time step
 
-    # Wird bei jedem Durchgang aufgerufen
-    def step(self):
+        self.age += 1 # Bacteria ages every time step
 
-        self.age += 1
-        
-        # if bacteria is eaten by another thing, it doesnt do anything (it will be killed by the other party)
-        if not self.is_eaten:
-            self.eat() 
+        if not self.is_eaten: # if bacteria is eaten it doesnt do anything. If it is not being eaten it executes the self explanatory functions
+            self.eat()
             self.reproduce()
             self.die()
+ 
+    def eat(self): # Nutrient consumntion process
 
-
-    # eat nutrients from soil   
-    def eat(self):
-        # get soil
         self_contents = self.model.grid.get_cell_list_contents([self.pos])
-        soil = list(filter(lambda x: isinstance(x, Soil), self_contents))[0]
+        soil = list(filter(lambda x: isinstance(x, Soil), self_contents))[0] # Get the soil object
 
-        # if there are nutrients, first nutrient on nutrition_list gets consumed
         for nutrient in self.nutrition_list:
-            # look if consumable nutrients in soil
             if nutrient in soil.nutrients and soil.nutrients[nutrient] > 0:
             
-                self.max_possible_consumption = self.avaliability * soil.nutrients[nutrient] # the biggest amount each bacterium can consume
-                self.max_individual_uptake = self.area * self.nutrient_uptake_ratio
-                if self.max_possible_consumption >= self.max_individual_uptake:
-                    actual_consumption = self.max_individual_uptake # make sure that bacteria does not consume more nutrients than its individual consumption upper bounf
+                self.max_possible_consumption = self.avaliability * soil.nutrients[nutrient] # The biggest amount each bacterium can consume depending on the nutrients amount
+                self.max_individual_uptake = self.area * self.nutrient_uptake_ratio # The biggest amount each bacterium can consume depending on the bacteria area
+                if self.max_possible_consumption >= self.max_individual_uptake: # Pick the smaller of the upper bounds
+                    actual_consumption = self.max_individual_uptake 
                 else: 
                     actual_consumption = self.max_possible_consumption
 
                 soil.nutrients[nutrient] -= actual_consumption
-                self.energy_netto = self.energy_yield * actual_consumption  - self.maintenance * self.area # energy coming from the consumed nutrients - the energy that bacteria needs to survive
-                
+                self.energy_netto = self.energy_yield * actual_consumption  - self.maintenance * self.area # energy coming from the consumed nutrients (produced) - the energy that bacteria needs to survive (maintenance)
         
                 for antibiotic in self.antibiotics_list:
-                    if antibiotic in soil.antibiotics and soil.antibiotics[antibiotic] > 0 and self.immediate_killing == False:
+                    if antibiotic in soil.antibiotics and soil.antibiotics[antibiotic] > 0 and self.immediate_killing == False: # If there is an antibiotic in the soil and the immediate killing is false the netto energy is decreased by the aggressiveness term
                         self.energy_netto -= abs(self.energy_netto) * self.aggressiveness 
                         self.viability_index += 1
                         soil.antibiotics[antibiotic] -= 1
 
-
-                if self.energy_netto >= 0:
-                    self.area += self.energy_netto * 0.5 # Reference paper. If there is some avalaible energy, bacterium will convert half of it into area
-                else: 
-                    self.area = 0.9 * self.area # Reference paper. If the netto energy balance is negative -> bacteria does not cover its maintenance -> shrinks 10%
+                if self.energy_netto >= 0: # If the netto energy is non-negative bacteria converts the produced energy into area
+                    self.area += self.energy_netto * 0.5 # The increment factor (0.5) is from reference paper
+                else: # If it is negative bacteria's area shrinks
+                    self.area = 0.9 * self.area # The shrincage factor (0.9) id from reference paper
                     self.viability_index += 1
             
     def reproduce(self):
 
-        # Only reproduce if the area is big enough forn that, if not increase the viability index
-        if self.area >= self.split_area: 
+        if self.area >= self.split_area: # Only reproduce if the area is big enough forn that, if not increase the viability index
 
             self_contents = self.model.grid.get_cell_list_contents([self.pos])
             self_contents_bacteria = list(filter(lambda x: not isinstance(x, Soil), self_contents))
 
-            # Spread to the neighboring simulation cells if one of the conditions met
-            if len(self_contents_bacteria) >= self.max_num_bacteria_in_cell or self.random.random() < self.random_spread_chance: 
-                # If there are free positions for this bacteria type it will push the mother cell there and reproduce the daughter cell into mother's original location
-                # If there is no space avaliable then the viability index gets increased
-                if len(self.model.free_space[f'{Type_a_2}_coordinates']) > 0:
+            if len(self_contents_bacteria) >= self.max_num_bacteria_in_cell or self.random.random() < self.random_spread_chance:  # Spread to the neighboring simulation cells if one of the conditions met 
+                if len(self.model.free_space[f'{Type_a_2}_coordinates']) > 0: # If there is a free positions for this bacteria type it will push the mother cell there and reproduce the daughter cell into mother's original location
 
                     reproduction_pos = self.pos
                     self.model.grid.move_agent(self, self.model.free_space[f'{Type_a_2}_coordinates'][0])
@@ -381,11 +349,10 @@ class Type_a_2(mesa.Agent):
                     self.model.grid.place_agent(new_bacteria, reproduction_pos)
                     self.model.schedule.add(new_bacteria)
                 
-                else:
+                else: # If there is no space avaliable then the viability index gets increased
                     self.viability_index += 1
 
-        # Otherwise reproduce in its own simulation cell        
-            else:
+            else: # Otherwise reproduce in its own simulation cell  
 
                 reproduction_pos = self.pos
                 new_bacteria= Type_a_2(self.model.next_id(), self.model, reproduction_pos, self.area * 0.5, self.average_viability_time, self.immediate_killing, self.average_aggressiveness)
@@ -400,13 +367,12 @@ class Type_a_2(mesa.Agent):
 
     def die(self):
 
-        if (self.area < self.min_area) or (self.viability_index >= self.max_viability_time) or (self.random.random() < self.dying_chance):
-            
-            # die                
+        if (self.area < self.min_area) or (self.viability_index >= self.max_viability_time) or (self.random.random() < self.dying_chance): # Death if one of the conditions is met
+                          
             self.model.grid.remove_agent(self)
             self.model.schedule.remove(self)
 
-        elif (self.immediate_killing == True) and (self.random.random() < self.aggressiveness):
+        elif (self.immediate_killing == True) and (self.random.random() < self.aggressiveness): # Speacial death case if immediate killing is true and antibiotics have to be considered
                 
             self_contents = self.model.grid.get_cell_list_contents([self.pos])
             soil = list(filter(lambda x: isinstance(x, Soil), self_contents))[0]
