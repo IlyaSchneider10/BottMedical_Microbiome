@@ -86,8 +86,8 @@ def get_num_bacteria_per_type(model, bacteria_type):
 
 ### CONSTANTS: 
 
-s_mutens_radius = 0.75 # micrometers radius found in literature and taken as refrence
-average_bacteria_area = 4 * math.pi * s_mutens_radius**2 # micrometers square, using sphere area formula to get bacterial area
+s_mutans_radius = 0.75 # micrometers radius found in literature and taken as refrence
+average_bacteria_area = 4 * math.pi * s_mutans_radius**2 # micrometers square, using sphere area formula to get bacterial area
 
 ### PREDATOR
 
