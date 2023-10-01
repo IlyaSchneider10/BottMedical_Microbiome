@@ -4,6 +4,7 @@ Simulating oral microbiome using MESA framework in Python
 File Description:
 
 - Batch_runs_convolution: a folder containing a csv file (created using Code in Play_around) with data from running a batch of simulations with different starting parameters
+- **Bottmedical_Microbiome_Project_Report_and_Manual: final report and manual**
 - Model Reference Paper: paper from which multiple concepts were adopted
 -  **Model_Ilya_Final: script with the agents and models**
 - *Model_Ilya_Final_Mutants_Extension: same script as in Model_Ilya_Final, but has various mutants for the prey as well as an option for random perturbation with antibiotics*
